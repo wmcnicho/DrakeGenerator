@@ -8,7 +8,7 @@ import time
 import matplotlib.pyplot as plt
 
 # Hyperparameters
-seq_length = 1000
+seq_length = 100
 embedding_dim = 256
 
 # Helper functions
@@ -27,6 +27,30 @@ def plot_graphs(history, string):
   plt.ylabel(string)
   plt.show()
 
+# Manually splitting up the dataset,
+# There is probably some built in methods to do this but why not recreate the wheel
+# returns a tuple of vectors to labels
+def split_data(input_data_arr, split_size, total_splits=None):
+  total_chars = len(input_data_arr)
+  if total_splits is None:
+    total_splits = total_chars-split_size-1
+  agg_xs = []
+  agg_ys = []
+  for i in range(0, total_splits):
+    xs = input_data_arr[i:i+split_size]
+    ys = input_data_arr[i+1 :i+split_size+1]
+    # Do we need to one-hot encode the output?
+    ys_to_label = tf.keras.utils.to_categorical(ys[-1], num_classes=vocab_size)
+    agg_xs.append(xs.copy())
+    agg_ys.append(ys_to_label)
+  numpy_xs = np.array(agg_xs)
+  # Do we need to one-hot encode the output?
+  #ys_to_label = tf.keras.utils.to_categorical(agg_ys, num_classes=vocab_size)
+  numpy_ys = np.array(agg_ys)
+  #ys_to_label = tf.keras.utils.to_categorical(agg_ys, num_classes=vocab_size)
+  #numpy_ys = np.array(ys_to_label)
+  return (numpy_xs, numpy_ys)
+
 # Verified this works with alphabet now lets make things more interesting
 # data = open('./archive/alphabet.txt').read()
 data = open('./archive/drake_lyrics.txt').read()
@@ -41,6 +65,8 @@ chars_from_ids = tf.keras.layers.experimental.preprocessing.StringLookup(vocabul
 # Preprocess the text into characters
 all_ids = ids_from_chars(tf.strings.unicode_split(data, 'UTF-8'))
 vocab_size = len(ids_from_chars.get_vocabulary())
+
+(split_xs, split_ys) = split_data(all_ids.numpy(), seq_length)
 
 # This might overcomplicate things but we'll leave it for now to save time
 ids_dataset = tf.data.Dataset.from_tensor_slices(all_ids)
@@ -71,12 +97,13 @@ print(model.summary())
 adam = tf.keras.optimizers.Adam(lr=0.01)
 model.compile(loss='categorical_crossentropy', optimizer=adam, metrics=['accuracy'])
 #earlystop = EarlyStopping(monitor='val_loss', min_delta=0, patience=5, verbose=0, mode='auto')
-history = model.fit(xs, ys, epochs=100, verbose=1)
-#plot_graphs(history, 'accuracy')
+#history = model.fit(xs, ys, epochs=100, verbose=1)
+history = model.fit(x=split_xs, y=split_ys, epochs=10, verbose=1)
+plot_graphs(history, 'accuracy')
 
 # Dank so we trained for 50 iterations on a slice of the data
 # Let's see what this model generates for a few seeds
-seed_text = '"'
+seed_text = 'you'
 chars_to_gen = 300
 generated_text = seed_text
 
