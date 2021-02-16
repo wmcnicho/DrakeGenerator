@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 # Hyperparameters
 seq_length = 40
 embedding_dim = 256
+char_to_process = 10000 # Set to None to use all
 
 # Helper functions
 def split_input_target(sequence):
@@ -52,6 +53,7 @@ def split_data(input_data_arr, split_size, total_splits=None):
   numpy_ys = np.array(agg_ys)
   return (numpy_xs, numpy_ys)
 
+## Open and pre-process the data
 # Verified this works with alphabet now lets make things more interesting
 # data = open('./archive/alphabet.txt').read()
 data = open('./archive/drake_lyrics.txt').read()
@@ -76,26 +78,7 @@ print(mapped_vocab)
 
 (split_xs, split_ys) = split_data(all_ids.numpy(), seq_length, 50000)
 
-# This might overcomplicate things but we'll leave it for now to save time
-ids_dataset = tf.data.Dataset.from_tensor_slices(all_ids)
-sequences = ids_dataset.batch(seq_length+1, drop_remainder=True)
-dataset = sequences.map(split_input_target)
-
-# # Batch the dataset
-# BATCH_SIZE = 50
-# dataset = dataset.batch(BATCH_SIZE, drop_remainder=True)
-
-# This assignment is sketch, complicated by the dataset pipeline tf paradigm
-for input_ex, output_ex in dataset.take(1):
-    print(input_ex)
-    print(output_ex)
-
-xs = input_ex
-labels = output_ex
-# One-hot encode the output
-ys = tf.keras.utils.to_categorical(labels, num_classes=vocab_size)
-
-
+## Build the model
 model = tf.keras.models.Sequential()
 model.add(tf.keras.layers.Embedding(vocab_size, embedding_dim, input_length=seq_length))
 model.add(tf.keras.layers.Bidirectional(tf.keras.layers.LSTM(150)))
@@ -104,11 +87,15 @@ print(model.summary())
 
 adam = tf.keras.optimizers.Adam(lr=0.01)
 model.compile(loss='categorical_crossentropy', optimizer=adam, metrics=['accuracy'])
+
+## Train the model
 #earlystop = EarlyStopping(monitor='val_loss', min_delta=0, patience=5, verbose=0, mode='auto')
-#history = model.fit(xs, ys, epochs=100, verbose=1)
 history = model.fit(x=split_xs, y=split_ys, epochs=10, verbose=1)
+# Uncomment to show dope graph
 #plot_graphs(history, 'accuracy')
 
+
+## Generate text with model
 # Dank so we trained for 50 iterations on a slice of the data
 # Let's see what this model generates for a few seeds
 seed_text = '[Verse]\n'
@@ -122,7 +109,6 @@ for _ in range(chars_to_gen):
     prediction = model.predict_classes(padded_input)
     new_char = text_from_ids(prediction).numpy().decode('utf-8')[-1] # Jump through the conversion hoops and grab character
     generated_text += new_char
-    # predicted = model.predict_classes()
 
 print("Input sequence was: %s" % (seed_text))
 print("%d character generated sequence:\n%s" % (chars_to_gen, generated_text))
