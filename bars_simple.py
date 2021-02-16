@@ -8,7 +8,7 @@ import time
 import matplotlib.pyplot as plt
 
 # Hyperparameters
-seq_length = 100
+seq_length = 40
 embedding_dim = 256
 
 # Helper functions
@@ -36,19 +36,20 @@ def split_data(input_data_arr, split_size, total_splits=None):
     total_splits = total_chars-split_size-1
   agg_xs = []
   agg_ys = []
-  for i in range(0, total_splits):
-    xs = input_data_arr[i:i+split_size]
-    ys = input_data_arr[i+1 :i+split_size+1]
-    # Do we need to one-hot encode the output?
-    ys_to_label = tf.keras.utils.to_categorical(ys[-1], num_classes=vocab_size)
-    agg_xs.append(xs.copy())
-    agg_ys.append(ys_to_label)
+  for i in range(0, total_splits, seq_length): # We could remove the step for more training data
+    # We create seq_length datapoints for each character combo padding with 0
+    for j in range(0, seq_length):
+      start = i
+      end = i+j+1
+      xs = input_data_arr[start:end]
+      xs = pad_sequences([xs], maxlen=seq_length, padding='pre')[0]
+      ys = input_data_arr[end]
+      ys_to_label = tf.keras.utils.to_categorical(ys, num_classes=vocab_size)
+      agg_xs.append(xs.copy())
+      agg_ys.append(ys_to_label)
+  print("Total Number of data points to use: {}".format(len(agg_xs)))
   numpy_xs = np.array(agg_xs)
-  # Do we need to one-hot encode the output?
-  #ys_to_label = tf.keras.utils.to_categorical(agg_ys, num_classes=vocab_size)
   numpy_ys = np.array(agg_ys)
-  #ys_to_label = tf.keras.utils.to_categorical(agg_ys, num_classes=vocab_size)
-  #numpy_ys = np.array(ys_to_label)
   return (numpy_xs, numpy_ys)
 
 # Verified this works with alphabet now lets make things more interesting
@@ -66,7 +67,14 @@ chars_from_ids = tf.keras.layers.experimental.preprocessing.StringLookup(vocabul
 all_ids = ids_from_chars(tf.strings.unicode_split(data, 'UTF-8'))
 vocab_size = len(ids_from_chars.get_vocabulary())
 
-(split_xs, split_ys) = split_data(all_ids.numpy(), seq_length)
+# Output vocab mapping for sanity
+vocab_sample = list(range(0,vocab_size))
+tf_vocab = tf.convert_to_tensor(vocab_sample)
+mapped_vocab = chars_from_ids(tf_vocab).numpy()
+print(vocab_sample)
+print(mapped_vocab)
+
+(split_xs, split_ys) = split_data(all_ids.numpy(), seq_length, 50000)
 
 # This might overcomplicate things but we'll leave it for now to save time
 ids_dataset = tf.data.Dataset.from_tensor_slices(all_ids)
@@ -99,11 +107,11 @@ model.compile(loss='categorical_crossentropy', optimizer=adam, metrics=['accurac
 #earlystop = EarlyStopping(monitor='val_loss', min_delta=0, patience=5, verbose=0, mode='auto')
 #history = model.fit(xs, ys, epochs=100, verbose=1)
 history = model.fit(x=split_xs, y=split_ys, epochs=10, verbose=1)
-plot_graphs(history, 'accuracy')
+#plot_graphs(history, 'accuracy')
 
 # Dank so we trained for 50 iterations on a slice of the data
 # Let's see what this model generates for a few seeds
-seed_text = 'you'
+seed_text = '[Verse]\n'
 chars_to_gen = 300
 generated_text = seed_text
 
