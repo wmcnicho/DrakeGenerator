@@ -94,7 +94,7 @@ def generate_text(seed_text, model, id_to_char_fn, chars_to_gen=300):
   return generated_text
 
 ## Main code paths
-def train_model(save=False, output_path="./models"):
+def train_model(save=False, output_path="./models/default_filepath.h5"):
     """ Codepath to process input and train (as opposed to load up and generate)"""
     # Verified this works with alphabet now lets make things more interesting
     # data = open('./archive/alphabet.txt').read()
@@ -129,23 +129,29 @@ def train_model(save=False, output_path="./models"):
     # example_prediction = my_model(split_xs)
     # print(example_prediction.shape)
     print(my_model.summary())
+    save_filepath = output_path + "/weights/class_model_weights.h5"
+    my_model.save_weights(save_filepath)
     return my_model
 
-def main(do_train=True):
+def main(model_path, do_train=True):
     """ Entry point """
     # TODO refactor to remove this load section, this is only here to get the conversion function which is expensive
     data = open('./archive/drake_lyrics.txt').read()
     print('Length of text: {} characters'.format(len(data)))
     vocab = sorted(set(data))
     ids_from_chars = preprocessing.StringLookup(vocabulary=list(vocab))
+    vocab_size = len(ids_from_chars.get_vocabulary())
 
-    # TODO implement save and load with saved_model, looks easy
-    # if train:
-    #     model = train()
-    # else:
-    #     # Load model
-    model = train_model()
-
+    if do_train:
+        print("Training and saving model...")
+        model = train_model(output_path=model_path)
+    else:
+        print("Loading model from disk...")
+        model = DrakeLSTM(vocab_size, embedding_dim)
+        # Dummy call needed to initalize variables strange TF quirk
+        model(tf.convert_to_tensor([[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,84,74,80]]))
+        load_status = model.load_weights("./models/class_model/classes_bars/weights/class_model_weights.h5")
+        print(load_status)
     
     # Generate text, this currently isn't compatiable with class approach
     print("Generating Bars...please wait")
@@ -160,4 +166,4 @@ def main(do_train=True):
     return 0
 
 if __name__ == "__main__":
-    main(do_train=True)
+    main("./models/class_model/classes_bars", do_train=False)
