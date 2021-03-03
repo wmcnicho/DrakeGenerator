@@ -66,7 +66,9 @@ def split_data(input_data_arr, vocab_size, seq_length, total_splits=None):
       xs = input_data_arr[start:end]
       xs = pad_sequences([xs], maxlen=seq_length, padding='pre')[0]
       y_seq = np.append(xs[1:], input_data_arr[end])
-      ys = tf.keras.utils.to_categorical(y_seq, num_classes=vocab_size)
+      # One hot encode output (this is not needed for 'Sparse categorical cross entropy' loss)
+      #ys = tf.keras.utils.to_categorical(y_seq, num_classes=vocab_size)
+      ys = y_seq
       agg_xs.append(xs.copy())
       agg_ys.append(ys.copy())
   print("Total Number of data points to use: {}".format(len(agg_xs)))
@@ -75,26 +77,39 @@ def split_data(input_data_arr, vocab_size, seq_length, total_splits=None):
   return (numpy_xs, numpy_ys)
 
 # Generate text
-def generate_text(seed_text, model, id_to_char_fn, chars_to_gen=300):
+def generate_text(seed_text, model, id_to_char_fn, chars_to_gen=300, random=False):
   generated_text = seed_text
+  chars_from_ids = tf.keras.layers.experimental.preprocessing.StringLookup(vocabulary=id_to_char_fn.get_vocabulary(), invert=True)
+  prev_state = None
   for _ in range(chars_to_gen):    
       input_id = id_to_char_fn(tf.strings.unicode_split(generated_text, 'UTF-8'))
       padded_input_arr = pad_sequences([input_id], maxlen=seq_length, padding='pre')
-      padded_input = padded_input_arr[0]
+      padded_input = tf.convert_to_tensor([padded_input_arr[0]]) # Wrap in a rank 1 tensor for batch compatiability
       # Unique to class impl
-      prediction = model.predict(padded_input)
+      prediction, state = model(padded_input, states=prev_state, return_state=True)
+      prev_state = state
       predicted_logits = prediction[:, -1, :]
-      predicted_ids = tf.random.categorical(predicted_logits, num_samples=1)
-      predicted_ids = tf.squeeze(predicted_ids, axis=-1)
-      # Convert from token ids to characters
-      chars_from_ids = tf.keras.layers.experimental.preprocessing.StringLookup(vocabulary=id_to_char_fn.get_vocabulary(), invert=True)
-      str_from_ids = tf.strings.reduce_join(chars_from_ids(predicted_ids), axis=-1)
+
+      if random is True:
+        # No random sampling, only take the max
+        predicted_ids = tf.argmax(predicted_logits[0])
+        # Convert from token ids to characters
+        str_from_ids = chars_from_ids(predicted_ids)
+      else: 
+        # Default behavior random categorical, which take a sample based off the weight of the logits
+        predicted_ids = tf.random.categorical(predicted_logits, num_samples=1)
+        predicted_ids = tf.squeeze(predicted_ids, axis=-1)
+        str_from_ids = tf.strings.reduce_join(chars_from_ids(predicted_ids), axis=-1)
       new_char = str_from_ids.numpy().decode('utf-8')[-1]# Jump through the conversion hoops and grab character
-      generated_text += new_char
+      generated_text += str_from_ids
+  # Some conversion hoops for our text object
+#   generated_text = generated_text.numpy().decode('utf-8')
+  # A quick filter so we don't get a Parental Advisory
+  generated_text = generated_text.numpy().decode('utf-8').replace('nigga', 'ninja').replace('Nigga', 'Ninja')
   return generated_text
 
 ## Main code paths
-def train_model(save=False, output_path="./models/default_filepath.h5"):
+def train_model(save=False, output_path="./models/default_filepath.h5", debug=False):
     """ Codepath to process input and train (as opposed to load up and generate)"""
     # Verified this works with alphabet now lets make things more interesting
     # data = open('./archive/alphabet.txt').read()
@@ -123,9 +138,10 @@ def train_model(save=False, output_path="./models/default_filepath.h5"):
     
     # Create the Model
     my_model = DrakeLSTM(vocab_size, embedding_dim)
-    my_model.compile(loss='categorical_crossentropy', optimizer=keras.optimizers.Adam(lr=0.01), metrics=['accuracy'], run_eagerly=True)
+    my_loss = tf.losses.SparseCategoricalCrossentropy(from_logits=True)
+    my_model.compile(loss=my_loss, optimizer=keras.optimizers.Adam(lr=0.001), metrics=['accuracy'], run_eagerly=debug)
     # Fit throws a shape compatiability error
-    my_model.fit(x=split_xs, y=split_ys, epochs=5, verbose=1)
+    my_model.fit(x=split_xs, y=split_ys, epochs=2, verbose=1, batch_size=64)
     # example_prediction = my_model(split_xs)
     # print(example_prediction.shape)
     print(my_model.summary())
@@ -156,11 +172,15 @@ def main(model_path, do_train=True):
     # Generate text, this currently isn't compatiable with class approach
     print("Generating Bars...please wait")
     seed_texts = ["[Verse]", "you", "love", "boy", "I love", "I love you", "Kiki, ","Swanging"]
+    seed_texts = ["[Verse]", "[Chorus]", "[Bridge]", "[Verse]", "[Chorus]", "[Bridge]"] 
     for seed in seed_texts:
-        num_chars=100
+        num_chars=400
         output_text = generate_text(seed, model, ids_from_chars, chars_to_gen=num_chars)
-        print("Input sequence: %s" % (seed))
+        print(">>>>>>>>>>>>>>>>>>>>")
+        print("Input seed: %s" % (seed))
         print("%d character generated sequence:\n%s\n" % (num_chars, output_text))
+        print("<<<<<<<<<<<<<<<<<<<<")
+        print("End of output for seed: %s" % (seed))
 
     #Hope you enjoyed :)
     return 0
