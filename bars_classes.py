@@ -32,6 +32,39 @@ class DrakeLSTM(keras.Model):
         else:
             return x
 
+class MyRNNCell(keras.layers.Layer):
+    def __init__(self, output_size, hidden_units=10, **kwargs):
+      super(MyRNNCell, self).__init__(**kwargs)
+      self.hidden_units = hidden_units
+      self.output_size = output_size
+      self.state_size = hidden_units
+
+    def build(self, input_shape):
+      self.w_xh = self.add_weight(shape=(self.hidden_units, input_shape[-1]), initializer='random_normal', trainable=True, name="W_xh")
+      self.w_hh = self.add_weight(shape=(self.hidden_units, self.hidden_units), initializer='random_normal', trainable=True, name="W_hh")
+      self.w_hy = self.add_weight(shape=(self.output_size, self.hidden_units), initializer='random_normal', trainable=True, name="W_hy")
+      batch_size = input_shape[1]
+
+    def call(self, inputs, states):
+      if states is None:
+        # TODO Do we need to consider batches?
+        #initial_state = tf.zeros([batch_size, self.hidden_units])
+        initial_state = tf.zeros([self.hidden_units])
+        prev_state = initial_state
+      else:
+        prev_state = states[-1]
+
+      #h_t = w_hh.prev_h + w_xh.inputs
+      input_to_h =  tf.matmul(self.w_xh, inputs)
+      weighted_prev_state =  tf.matmul(self.w_hh, prev_state) 
+      new_state = input_to_h + weighted_prev_state
+      #h_t = activation(h_t)
+      new_state = tf.keras.activations.tanh(new_state)
+      #y_t = w_hy.h_t
+      output = tf.matmul(self.w_hy, new_state)
+      # return y_t, h_t
+      return output, [new_state]
+
 # TODO This is copy-pasta from bars_simple.py could be extracted to a separate utilities file
 # Helper functions
 def split_input_target(sequence):
@@ -58,7 +91,9 @@ def split_data(input_data_arr, vocab_size, seq_length, total_splits=None):
     total_splits = total_chars-seq_length-1
   agg_xs = []
   agg_ys = []
-  for i in range(0, total_splits, seq_length): # We could remove the step for more training data
+  # Step can be tuned as a hyper_parameter, prior training used seq_length
+  step = seq_length
+  for i in range(0, total_splits, step): 
     # We create seq_length datapoints for each character combo padding with 0
     for j in range(0, seq_length):
       start = i
@@ -109,7 +144,7 @@ def generate_text(seed_text, model, id_to_char_fn, chars_to_gen=300, random=Fals
   return generated_text
 
 ## Main code paths
-def train_model(save=False, output_path="./models/default_filepath.h5", debug=False):
+def train_model(output_path=None, debug=False):
     """ Codepath to process input and train (as opposed to load up and generate)"""
     # Verified this works with alphabet now lets make things more interesting
     # data = open('./archive/alphabet.txt').read()
@@ -145,11 +180,13 @@ def train_model(save=False, output_path="./models/default_filepath.h5", debug=Fa
     # example_prediction = my_model(split_xs)
     # print(example_prediction.shape)
     print(my_model.summary())
-    save_filepath = output_path + "/weights/class_model_weights.h5"
-    my_model.save_weights(save_filepath)
+    if output_path is not None:
+      save_filepath = output_path + "/weights/class_model_weights.h5"
+      print("Output path found saving to " + save_filepath)
+      my_model.save_weights(save_filepath)
     return my_model
 
-def main(model_path, do_train=True):
+def main(model_path, do_train=False):
     """ Entry point """
     # TODO refactor to remove this load section, this is only here to get the conversion function which is expensive
     data = open('./archive/drake_lyrics.txt').read()
@@ -171,8 +208,8 @@ def main(model_path, do_train=True):
     
     # Generate text, this currently isn't compatiable with class approach
     print("Generating Bars...please wait")
+    #seed_texts = ["[Verse]", "[Chorus]", "[Bridge]", "[Verse]", "[Chorus]", "[Bridge]"] 
     seed_texts = ["[Verse]", "you", "love", "boy", "I love", "I love you", "Kiki, ","Swanging"]
-    seed_texts = ["[Verse]", "[Chorus]", "[Bridge]", "[Verse]", "[Chorus]", "[Bridge]"] 
     for seed in seed_texts:
         num_chars=400
         output_text = generate_text(seed, model, ids_from_chars, chars_to_gen=num_chars)
@@ -186,4 +223,4 @@ def main(model_path, do_train=True):
     return 0
 
 if __name__ == "__main__":
-    main("./models/class_model/classes_bars", do_train=False)
+    main(None, do_train=True)

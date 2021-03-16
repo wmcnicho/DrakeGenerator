@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 # Hyperparameters
 seq_length = 40
 embedding_dim = 256
-char_to_process = 5000 # Set to None to use all
+char_to_process = None # Set to None to use all
 
 # Helper functions
 def split_input_target(sequence):
