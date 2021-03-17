@@ -19,16 +19,6 @@ class MyCellModelWrapper(keras.Model):
         else:
             return x
 
-def create_basic_rnn(output_size):
-    cell = MyRNNCell(output_size)
-    model = MyCellModelWrapper(cell)
-    my_loss = tf.losses.CategoricalCrossentropy(from_logits=True)
-    model.compile(loss=my_loss, 
-                    optimizer=keras.optimizers.Adam(lr=0.001),
-                    metrics=['accuracy'])
-    model.run_eagerly = True
-    return model
-
 def split_data_new(input_data_arr, vocab_size, seq_length, total_splits=None):
   total_chars = len(input_data_arr)
   if total_splits is None:
@@ -84,6 +74,16 @@ def test_rnn_cell():
     y = myCell.call(input_1, None)
     y_2 = myCell(input_1, None)
 
+def create_basic_rnn(output_size):
+    cell = MyRNNCell(output_size)
+    model = MyCellModelWrapper(cell)
+    my_loss = tf.losses.CategoricalCrossentropy(from_logits=True)
+    model.compile(loss=my_loss, 
+                    optimizer=keras.optimizers.Adam(lr=0.001),
+                    metrics=['accuracy'],
+                    run_eagerly=True)
+    return model
+
 def test_basic_rnn():
     seq_length = 30
     (xs, ys, vocab_size) = create_alphabet_data(seq_length=30)
@@ -95,8 +95,18 @@ def test_basic_rnn():
     y = model(test_input)
     # For this implementation we expect a one-hot encode as input
     my_loss = tf.losses.CategoricalCrossentropy(from_logits=True)
+    my_optimizer = keras.optimizers.Adam(lr=0.001)
     test_pred = model.predict(xs[:32])
     test_loss = my_loss(test_pred, ys[:32])
+    print(model.summary())
+    for i in range(0, len(xs), 32):
+        with tf.GradientTape() as tape:
+            logits_batch = model(xs[i:i+32])
+            loss_value = my_loss(ys[i:i+32], logits_batch)
+            loss_value += sum(model.losses)
+            #print(model.trainable_weights)
+        grads = tape.gradient(loss_value, model.trainable_weights)
+        my_optimizer.apply_gradients(zip(grads, model.trainable_variables))
     model.fit(x=xs, y=ys, epochs=10, verbose=1)
     print(model.summary())
 
