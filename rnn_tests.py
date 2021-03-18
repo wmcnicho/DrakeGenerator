@@ -99,14 +99,14 @@ def test_basic_rnn():
     test_pred = model.predict(xs[:32])
     test_loss = my_loss(test_pred, ys[:32])
     print(model.summary())
-    for i in range(0, len(xs), 32):
-        with tf.GradientTape() as tape:
-            logits_batch = model(xs[i:i+32])
-            loss_value = my_loss(ys[i:i+32], logits_batch)
-            loss_value += sum(model.losses)
-            #print(model.trainable_weights)
-        grads = tape.gradient(loss_value, model.trainable_weights)
-        my_optimizer.apply_gradients(zip(grads, model.trainable_variables))
+    # for i in range(0, len(xs), 32):
+    #     with tf.GradientTape() as tape:
+    #         logits_batch = model(xs[i:i+32])
+    #         loss_value = my_loss(ys[i:i+32], logits_batch)
+    #         loss_value += sum(model.losses)
+    #         #print(model.trainable_weights)
+    #     grads = tape.gradient(loss_value, model.trainable_weights)
+    #     my_optimizer.apply_gradients(zip(grads, model.trainable_variables))
     model.fit(x=xs, y=ys, epochs=10, verbose=1)
     print(model.summary())
 

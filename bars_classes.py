@@ -42,9 +42,9 @@ class MyRNNCell(keras.layers.Layer):
 
     def build(self, input_shape):
       self.batch_size = input_shape[0]
-      self.w_xh = self.add_weight(shape=(self.hidden_units, input_shape[-1]), initializer='random_normal', trainable=True, name="W_xh")
+      self.w_xh = self.add_weight(shape=(input_shape[-1], self.hidden_units), initializer='random_normal', trainable=True, name="W_xh")
       self.w_hh = self.add_weight(shape=(self.hidden_units, self.hidden_units), initializer='random_normal', trainable=True, name="W_hh")
-      self.w_hy = self.add_weight(shape=(self.output_size, self.hidden_units), initializer='random_normal', trainable=True, name="W_hy")
+      self.w_hy = self.add_weight(shape=(self.hidden_units, self.output_size), initializer='random_normal', trainable=True, name="W_hy")
     
     def get_initial_state(self, inputs=None, batch_size=None, dtype=None):
       return tf.zeros([batch_size, self.hidden_units])
@@ -54,22 +54,18 @@ class MyRNNCell(keras.layers.Layer):
         initial_states = tf.zeros([self.batch_size, self.hidden_units])
       else:
         initial_states = states[0]
-
-      outputs = tf.Variable(initial_value=tf.zeros([self.batch_size, self.output_size]), shape=(self.batch_size, self.output_size))
-      next_states = tf.Variable(initial_value=tf.zeros([self.batch_size, self.hidden_units]), shape=(self.batch_size, self.hidden_units))
-      for i, batch_input in enumerate(inputs):
-        #h_t = w_hh.prev_h + w_xh.inputs
-        input_to_h =  tf.matmul(self.w_xh, tf.expand_dims(batch_input,-1))
-        weighted_prev_state =  tf.matmul(self.w_hh, tf.expand_dims(initial_states[i],-1)) 
-        next_state = input_to_h + weighted_prev_state
-        #h_t = activation(h_t)
-        next_state = tf.keras.activations.tanh(next_state)
-        #y_t = w_hy.h_t
-        output = tf.matmul(self.w_hy, next_state)
-        # return y_t, h_t
-        outputs[i].assign(tf.squeeze(output, axis=-1))
-        next_states[i].assign(tf.squeeze(next_state, axis=-1))
-      return outputs, next_states
+      #h_t = w_hh.prev_h + w_xh.inputs
+      # TODO check if 1d
+      #tf.expand_dims(batch_input,0)
+      input_to_h =  tf.matmul(inputs, self.w_xh)
+      weighted_prev_state =  tf.matmul(initial_states, self.w_hh) 
+      next_state = input_to_h + weighted_prev_state
+      #h_t = activation(h_t)
+      next_state = tf.keras.activations.tanh(next_state)
+      #y_t = w_hy.h_t
+      output = tf.matmul(next_state, self.w_hy)
+      # return y_t, h_t
+      return output, next_state
 
 # TODO This is copy-pasta from bars_simple.py could be extracted to a separate utilities file
 # Helper functions
