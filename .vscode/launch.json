@@ -5,7 +5,7 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python Tets",
+            "name": "Python Tests",
             "type": "python",
             "request": "launch",
             "program": "${workspaceFolder}/rnn_tests.py",

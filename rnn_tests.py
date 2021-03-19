@@ -1,8 +1,8 @@
 import tensorflow as tf
-from bars_classes import MyRNNCell
 from tensorflow import keras
-from bars_classes import split_data
 from tensorflow.keras.layers.experimental import preprocessing
+from custom_models import MyRNNCell
+import utils
 
 class MyCellModelWrapper(keras.Model):
     def __init__(self, cell):
@@ -64,7 +64,7 @@ def create_alphabet_data(seq_length=30):
 
     # Warning: This is an untested function used as a test dependency
     (xs, ys) = split_data_new(all_ids.numpy(), vocab_size, seq_length)
-    return (xs, ys, vocab_size)
+    return (xs, ys, vocab_size, ids_from_chars)
 
 def test_rnn_cell():
     tf.executing_eagerly()
@@ -86,7 +86,7 @@ def create_basic_rnn(output_size):
 
 def test_basic_rnn():
     seq_length = 30
-    (xs, ys, vocab_size) = create_alphabet_data(seq_length=30)
+    (xs, ys, vocab_size, ids_from_chars_fn) = create_alphabet_data(seq_length=30)
     model = create_basic_rnn(vocab_size)
     # test_input = keras.Input((vocab_size))
     #py_input = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,84,74,80]
@@ -107,9 +107,12 @@ def test_basic_rnn():
     #         #print(model.trainable_weights)
     #     grads = tape.gradient(loss_value, model.trainable_weights)
     #     my_optimizer.apply_gradients(zip(grads, model.trainable_variables))
-    model.fit(x=xs, y=ys, epochs=10, verbose=1)
+    model.fit(x=xs, y=ys, epochs=4, verbose=1)
     print(model.summary())
-
+    generate_text('abc', model, seq_length, ids_from_chars_fn, chars_to_gen=100)
+    generate_text('jkl', model, seq_length, ids_from_chars_fn, chars_to_gen=100)
+    generate_text('jkl', model, seq_length, ids_from_chars_fn, chars_to_gen=100)
+    generate_text('xyz', model, seq_length, ids_from_chars_fn, chars_to_gen=100)
 
 def main():
     #test_rnn_cell()
