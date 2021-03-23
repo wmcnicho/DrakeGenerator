@@ -33,6 +33,7 @@ def train_model(file_name=None, debug=False):
 
     # Creating dataset from pre-processed text
     print("Splitting file into dataset")
+    # TODO Try new split data method
     (split_xs, split_ys) = utils.split_data(all_ids.numpy(), vocab_size, seq_length, total_splits=char_to_process)
     
     # Create the Model
@@ -68,7 +69,7 @@ def main(save_filename=None,  load_filename="class_model_weights.h5", do_train=F
         vocab_size = len(ids_from_chars.get_vocabulary())
         print("Loading model from disk...")
         model = DrakeLSTM(vocab_size, embedding_dim)
-        utils.load_weights(load_filename, model)
+        utils.load_weights(load_filename, model, tf.TensorShape([1, vocab_size]))
     
     # Generate text, this currently isn't compatiable with class approach
     print("Generating Bars...please wait")

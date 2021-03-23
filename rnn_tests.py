@@ -7,6 +7,7 @@ import utils
 class MyCellModelWrapper(keras.Model):
     def __init__(self, cell):
         super().__init__()
+        # TODO This needs to accept state as an input
         self.rnn = keras.layers.RNN(cell, return_state=True)
 
     def call(self, inputs, states=None, return_state=False, training=False):
@@ -90,36 +91,39 @@ def create_basic_rnn(output_size):
                     run_eagerly=True)
     return model
 
-def test_basic_rnn():
+def test_basic_rnn(doTrain=True):
     seq_length = 30
     (xs, ys, vocab_size, ids_from_chars_fn) = create_alphabet_data(seq_length=30)
     model = create_basic_rnn(vocab_size)
-    # test_input = keras.Input((vocab_size))
-    #py_input = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,84,74,80]
-    #test_input = tf.variable(shape=(None, 30))
-    test_input = tf.random.normal(shape=(32, seq_length, 33))
-    y = model(test_input)
-    # For this implementation we expect a one-hot encode as input
-    my_loss = tf.losses.CategoricalCrossentropy(from_logits=True)
-    my_optimizer = keras.optimizers.Adam(lr=0.001)
-    test_pred = model.predict(xs[:32])
-    test_loss = my_loss(test_pred, ys[:32])
+    if doTrain:
+        # test_input = keras.Input((vocab_size))
+        #py_input = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,84,74,80]
+        #test_input = tf.variable(shape=(None, 30))
+        test_input = tf.random.normal(shape=(32, seq_length, 33))
+        y = model(test_input)
+        # For this implementation we expect a one-hot encode as input
+        my_loss = tf.losses.CategoricalCrossentropy(from_logits=True)
+        my_optimizer = keras.optimizers.Adam(lr=0.001)
+        test_pred = model.predict(xs[:32])
+        test_loss = my_loss(test_pred, ys[:32])
 
-    # test_input_2 = tf.random.normal(shape=(32, seq_length, 33))
-    # test_pred = model(1)
+        # test_input_2 = tf.random.normal(shape=(32, seq_length, 33))
+        # test_pred = model(1)
 
-    print(model.summary())
-    # for i in range(0, len(xs), 32):
-    #     with tf.GradientTape() as tape:
-    #         logits_batch = model(xs[i:i+32])
-    #         loss_value = my_loss(ys[i:i+32], logits_batch)
-    #         loss_value += sum(model.losses)
-    #         #print(model.trainable_weights)
-    #     grads = tape.gradient(loss_value, model.trainable_weights)
-    #     my_optimizer.apply_gradients(zip(grads, model.trainable_variables))
-    # It usually only takes 2 epochs to get 100% accuracy
-    model.fit(x=xs, y=ys, epochs=3, verbose=1)
-    print(model.summary())
+        print(model.summary())
+        # for i in range(0, len(xs), 32):
+        #     with tf.GradientTape() as tape:
+        #         logits_batch = model(xs[i:i+32])
+        #         loss_value = my_loss(ys[i:i+32], logits_batch)
+        #         loss_value += sum(model.losses)
+        #         #print(model.trainable_weights)
+        #     grads = tape.gradient(loss_value, model.trainable_weights)
+        #     my_optimizer.apply_gradients(zip(grads, model.trainable_variables))
+        # It usually only takes 2 epochs to get 100% accuracy
+        model.fit(x=xs, y=ys, epochs=1, verbose=1)
+        print(model.summary())
+    else: 
+        utils.load_weights("alphabet_model_weights.h5", model, tf.TensorShape([32, 1, vocab_size]), custom_dir='./models/test_model/simple_custom_rnn/')
     num_chars=100
     seed_texts = ['abc','jkl','qrs','xyz']
     for seed in seed_texts:
