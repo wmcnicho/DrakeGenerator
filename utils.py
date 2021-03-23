@@ -21,11 +21,12 @@ def save_model(file_name, model, custom_dir=None):
 def text_from_ids(ids, char_to_id_fn):
   return tf.strings.reduce_join(char_to_id_fn(ids), axis=-1)
 
-def load_weights(file_name, model, custom_dir=None):
+def load_weights(file_name, model, input_shape, custom_dir=None):
   directory = output_dir if custom_dir is None else custom_dir
   # Dummy call needed to initalize variables strange TF quirk, maybe to call build?
-  # TODO this call has dimensions which is bug prone
-  model(tf.convert_to_tensor([[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,84,74,80]]))
+  # tf.convert_to_tensor([[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,84,74,80]])
+  sample_input = tf.zeros(input_shape)
+  model(sample_input)
   load_status = model.load_weights(directory + weights_dir + file_name)
   print(load_status)
   return None
