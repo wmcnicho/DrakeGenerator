@@ -37,7 +37,7 @@ class MyRNNCell(keras.layers.Layer):
     
     def get_initial_state(self, inputs=None, batch_size=None, dtype=None):
       batch = batch_size if batch_size is not None else inputs.shape[0]
-      return tf.zeros((batch_size, self.hidden_units))
+      return tf.zeros((batch, self.hidden_units))
 
     def call(self, inputs, states):
       if len(inputs.shape) is 1:

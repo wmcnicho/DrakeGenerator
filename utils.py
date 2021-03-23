@@ -72,8 +72,9 @@ def generate_text_one_h(seed_text, model, seq_length, char_to_id_fn, chars_to_ge
   chars_from_ids = tf.keras.layers.experimental.preprocessing.StringLookup(vocabulary=char_to_id_fn.get_vocabulary(), invert=True)
   vocab_size = len(char_to_id_fn.get_vocabulary())
   prev_state = None
+  input_string = seed_text
   for _ in range(chars_to_gen):    
-    input_id = char_to_id_fn(tf.strings.unicode_split(output_text, 'UTF-8'))
+    input_id = char_to_id_fn(tf.strings.unicode_split(input_string, 'UTF-8'))
     input_logits = tf.keras.utils.to_categorical(input_id, num_classes=vocab_size)
     input_logits = tf.expand_dims(input_logits, 0) # Add a dummy batch
     predicted_logits, prev_state =  model(input_logits, states=prev_state, return_state=True)
@@ -81,13 +82,14 @@ def generate_text_one_h(seed_text, model, seq_length, char_to_id_fn, chars_to_ge
       # Default behavior random categorical, which take a sample based off the weight of the logits
       predicted_ids = tf.random.categorical(predicted_logits, num_samples=1)
       predicted_ids = tf.squeeze(predicted_ids, axis=-1)
-      str_from_ids = tf.strings.reduce_join(chars_from_ids(predicted_ids), axis=-1)
+      predicted_char = tf.strings.reduce_join(chars_from_ids(predicted_ids), axis=-1)
     else:
       # No random sampling, only take the max
       predicted_ids = tf.argmax(predicted_logits[0])
       # Convert from token ids to characters
-      str_from_ids = chars_from_ids(predicted_ids)
-    output_text += str_from_ids
+      predicted_char = chars_from_ids(predicted_ids)
+    input_string = predicted_char.numpy().decode('utf-8')
+    output_text += predicted_char
   return output_text.numpy().decode('utf-8')
 
 # Generate text

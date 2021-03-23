@@ -118,14 +118,14 @@ def test_basic_rnn():
     #     grads = tape.gradient(loss_value, model.trainable_weights)
     #     my_optimizer.apply_gradients(zip(grads, model.trainable_variables))
     # It usually only takes 2 epochs to get 100% accuracy
-    model.fit(x=xs, y=ys, epochs=1, verbose=1)
+    model.fit(x=xs, y=ys, epochs=3, verbose=1)
     print(model.summary())
     num_chars=100
     seed_texts = ['abc','jkl','qrs','xyz']
     for seed in seed_texts:
         output_text = utils.generate_text_one_h(seed, model, seq_length, ids_from_chars_fn, chars_to_gen=num_chars, random=False)
         print("Input seed: %s" % (seed))
-        print("%d sequence:\n%s\n" % (num_chars, output_text))
+        print("%d char sequence:\n%s\n" % (num_chars, output_text))
 
 def main():
     test_rnn_cell()
