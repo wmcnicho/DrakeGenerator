@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.layers.experimental import preprocessing
-from custom_models import DrakeLSTM
+from custom_models import DrakeGRUSequential
 
 import numpy as np
 import utils
@@ -37,7 +37,7 @@ def train_model(file_name=None, debug=False):
     (split_xs, split_ys) = utils.split_data(all_ids.numpy(), vocab_size, seq_length, total_splits=char_to_process)
     
     # Create the Model
-    my_model = DrakeLSTM(vocab_size, embedding_dim)
+    my_model = DrakeGRUSequential(vocab_size, embedding_dim)
     my_loss = tf.losses.SparseCategoricalCrossentropy(from_logits=True)
     my_model.compile(loss=my_loss, optimizer=keras.optimizers.Adam(lr=0.001), metrics=['accuracy'], run_eagerly=debug)
 

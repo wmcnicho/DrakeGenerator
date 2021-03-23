@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow import keras
 
-class DrakeLSTM(keras.Model):
+class DrakeGRUSequential(keras.Model):
     def __init__(self, vocab_size, embedding_dim, rnn_units=150):
         super().__init__()
         self.embed_layer = keras.layers.Embedding(vocab_size, embedding_dim)
@@ -26,7 +26,6 @@ class MyRNNCell(keras.layers.Layer):
     def __init__(self, output_size, hidden_units=10, **kwargs):
       super(MyRNNCell, self).__init__(**kwargs)
       self.hidden_units = hidden_units
-      self.state_size = hidden_units
       self.output_size = output_size
       self.state_size = hidden_units
 
@@ -56,3 +55,23 @@ class MyRNNCell(keras.layers.Layer):
       output = tf.matmul(next_state, self.w_hy)
       # return y_t, h_t
       return output, next_state
+
+class MyGRUCell(keras.layers.Layer):
+    def __init__(self, output_size, hidden_units=10, **kwargs):
+      super(MyGRUCell, self).__init__(**kwargs)
+      self.hidden_units = hidden_units
+      self.output_size = output_size
+      self.state_size = hidden_units
+
+    def build(self, input_shape):
+      self.w_xh = self.add_weight(shape=(input_shape[-1], self.hidden_units), initializer='random_normal', trainable=True, name="W_xh")
+      self.w_hh = self.add_weight(shape=(self.hidden_units, self.hidden_units), initializer='random_normal', trainable=True, name="W_hh")
+      self.w_hy = self.add_weight(shape=(self.hidden_units, self.output_size), initializer='random_normal', trainable=True, name="W_hy")
+    
+    def get_initial_state(self, inputs=None, batch_size=None, dtype=None):
+      batch = batch_size if batch_size is not None else inputs.shape[0]
+      return tf.zeros((batch, self.hidden_units))
+    
+    def call(self, inputs, states):
+      # TODO write me!
+      return None

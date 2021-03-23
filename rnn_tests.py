@@ -91,7 +91,7 @@ def create_basic_rnn(output_size):
                     run_eagerly=True)
     return model
 
-def test_basic_rnn(doTrain=True):
+def test_basic_rnn(doTrain=True, save_filename=None):
     seq_length = 30
     (xs, ys, vocab_size, ids_from_chars_fn) = create_alphabet_data(seq_length=30)
     model = create_basic_rnn(vocab_size)
@@ -120,14 +120,16 @@ def test_basic_rnn(doTrain=True):
         #     grads = tape.gradient(loss_value, model.trainable_weights)
         #     my_optimizer.apply_gradients(zip(grads, model.trainable_variables))
         # It usually only takes 2 epochs to get 100% accuracy
-        model.fit(x=xs, y=ys, epochs=1, verbose=1)
+        model.fit(x=xs, y=ys, epochs=5, verbose=1)
         print(model.summary())
+        if save_filename is not None:
+            utils.save_model(save_filename, model, custom_dir='./models/test_model/simple_custom_rnn/')
     else: 
         utils.load_weights("alphabet_model_weights.h5", model, tf.TensorShape([32, 1, vocab_size]), custom_dir='./models/test_model/simple_custom_rnn/')
     num_chars=100
     seed_texts = ['abc','jkl','qrs','xyz']
     for seed in seed_texts:
-        output_text = utils.generate_text_one_h(seed, model, seq_length, ids_from_chars_fn, chars_to_gen=num_chars, random=False)
+        output_text = utils.generate_text_one_h(seed, model, seq_length, ids_from_chars_fn, chars_to_gen=num_chars, random=True)
         print("Input seed: %s" % (seed))
         print("%d char sequence:\n%s\n" % (num_chars, output_text))
 
