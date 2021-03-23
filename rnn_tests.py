@@ -1,43 +1,8 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.layers.experimental import preprocessing
-from custom_models import MyRNNCell
+from custom_models import MyRNNCell, MyCellModelWrapper, MyGRUCell
 import utils
-
-class MyCellModelWrapper(keras.Model):
-    def __init__(self, cell):
-        super().__init__()
-        # TODO This needs to accept state as an input
-        self.rnn = keras.layers.RNN(cell, return_state=True)
-
-    def call(self, inputs, states=None, return_state=False, training=False):
-        x = inputs
-        x, states = self.rnn(inputs=x)
-        if return_state:
-            return x, states
-        else:
-            return x
-
-def split_data_new(input_data_arr, vocab_size, seq_length, total_splits=None):
-  total_chars = len(input_data_arr)
-  if total_splits is None:
-    total_splits = total_chars-seq_length-1
-  agg_xs = []
-  agg_ys = []
-  for i in range(seq_length, total_splits-1):
-    start = i - seq_length
-    end = i
-    xs = input_data_arr[start:end]
-    ys = input_data_arr[end+1]
-    #Copies are expensive let's try to avoid this
-    #agg_xs.append(xs.copy())
-    #agg_ys.append(ys.copy())
-    agg_xs.append(xs)
-    agg_ys.append(ys)
-  print("Total Number of data points to use: {}".format(len(agg_xs)))
-  oh_xs = tf.keras.utils.to_categorical(agg_xs, num_classes=vocab_size)
-  oh_ys = tf.keras.utils.to_categorical(agg_ys, num_classes=vocab_size)
-  return (oh_xs, oh_ys)
 
 def create_alphabet_data(seq_length=30):
     """
@@ -62,7 +27,7 @@ def create_alphabet_data(seq_length=30):
     mapped_vocab = chars_from_ids(tf_vocab).numpy()
 
     # Warning: This is an untested function used as a test dependency
-    (xs, ys) = split_data_new(all_ids.numpy(), vocab_size, seq_length)
+    (xs, ys) = utils.split_data_new(all_ids.numpy(), vocab_size, seq_length)
     return (xs, ys, vocab_size, ids_from_chars)
 
 def test_rnn_cell():
@@ -111,15 +76,6 @@ def test_basic_rnn(doTrain=True, save_filename=None):
         # test_pred = model(1)
 
         print(model.summary())
-        # for i in range(0, len(xs), 32):
-        #     with tf.GradientTape() as tape:
-        #         logits_batch = model(xs[i:i+32])
-        #         loss_value = my_loss(ys[i:i+32], logits_batch)
-        #         loss_value += sum(model.losses)
-        #         #print(model.trainable_weights)
-        #     grads = tape.gradient(loss_value, model.trainable_weights)
-        #     my_optimizer.apply_gradients(zip(grads, model.trainable_variables))
-        # It usually only takes 2 epochs to get 100% accuracy
         model.fit(x=xs, y=ys, epochs=5, verbose=1)
         print(model.summary())
         if save_filename is not None:
@@ -136,7 +92,7 @@ def test_basic_rnn(doTrain=True, save_filename=None):
 def main():
     test_rnn_cell()
     test_rnn_cell_batch()
-    test_basic_rnn()
+    test_basic_rnn(doTrain=False)
 
 if __name__ == "__main__":
     main()

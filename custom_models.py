@@ -22,6 +22,19 @@ class DrakeGRUSequential(keras.Model):
         else:
             return x
 
+class MyCellModelWrapper(keras.Model):
+    def __init__(self, cell):
+        super().__init__()
+        self.rnn = keras.layers.RNN(cell, return_state=True)
+
+    def call(self, inputs, states=None, return_state=False, training=False):
+        x = inputs
+        x, states = self.rnn(inputs=x)
+        if return_state:
+            return x, states
+        else:
+            return x
+
 class MyRNNCell(keras.layers.Layer):
     def __init__(self, output_size, hidden_units=10, **kwargs):
       super(MyRNNCell, self).__init__(**kwargs)
@@ -64,7 +77,7 @@ class MyGRUCell(keras.layers.Layer):
       self.state_size = hidden_units
 
     def build(self, input_shape):
-      self.w_xh = self.add_weight(shape=(input_shape[-1], self.hidden_units), initializer='random_normal', trainable=True, name="W_xh")
+      self.w_z = self.add_weight(shape=(input_shape[-1], self.hidden_units), initializer='random_normal', trainable=True, name="W_xh")
       self.w_hh = self.add_weight(shape=(self.hidden_units, self.hidden_units), initializer='random_normal', trainable=True, name="W_hh")
       self.w_hy = self.add_weight(shape=(self.hidden_units, self.output_size), initializer='random_normal', trainable=True, name="W_hy")
     
@@ -74,4 +87,17 @@ class MyGRUCell(keras.layers.Layer):
     
     def call(self, inputs, states):
       # TODO write me!
+      # Update gate, info to pass on (same as simple RNN up until sigmoid)
+      #z_t = \sigma(W^zx_t + U^(z)h_{t-1})
+
+      # Reset Gate, how much to forget
+      #r_t = \sigma(W^rx_t + U^rh_{t-1})
+
+      # Current memory context
+      # h'_t=tanh(Wx_t + r_t . Uh_{t-1})
+
+      # Final memory, Combination of current context and previous memories
+      # h_t=z_t.h_{t-1} + (1-z_t).h'_t
+
+      # Output and state are the same interestingly enough
       return None

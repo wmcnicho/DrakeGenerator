@@ -67,6 +67,26 @@ def split_data(input_data_arr, vocab_size, seq_length, total_splits=None):
   numpy_ys = np.array(agg_ys)
   return (numpy_xs, numpy_ys)
 
+def split_data_new(input_data_arr, vocab_size, seq_length, total_splits=None):
+  # This data split works slightly differently but is much faster
+  # Output is one-hot encoded to the output
+  total_chars = len(input_data_arr)
+  if total_splits is None:
+    total_splits = total_chars-seq_length-1
+  agg_xs = []
+  agg_ys = []
+  for i in range(seq_length, total_splits-1):
+    start = i - seq_length
+    end = i
+    xs = input_data_arr[start:end]
+    ys = input_data_arr[end+1]
+    agg_xs.append(xs)
+    agg_ys.append(ys)
+  print("Total Number of data points to use: {}".format(len(agg_xs)))
+  oh_xs = tf.keras.utils.to_categorical(agg_xs, num_classes=vocab_size)
+  oh_ys = tf.keras.utils.to_categorical(agg_ys, num_classes=vocab_size)
+  return (oh_xs, oh_ys)
+
 # Text generation methods to extract sequences from models
 def generate_text_one_h(seed_text, model, seq_length, char_to_id_fn, chars_to_gen=300, random=True):
   output_text = seed_text
@@ -83,13 +103,18 @@ def generate_text_one_h(seed_text, model, seq_length, char_to_id_fn, chars_to_ge
       # Default behavior random categorical, which take a sample based off the weight of the logits
       predicted_ids = tf.random.categorical(predicted_logits, num_samples=1)
       predicted_ids = tf.squeeze(predicted_ids, axis=-1)
+      # TODO this could probably be cleaner
+      if predicted_ids[0] == 0 or predicted_ids[0] == 1:
+          # this is the empty/unknown characters, we should ignore
+          #print('bad char detected')
+          continue
       predicted_char = tf.strings.reduce_join(chars_from_ids(predicted_ids), axis=-1)
     else:
       # No random sampling, only take the max
       predicted_ids = tf.argmax(predicted_logits[0])
       # Convert from token ids to characters
       predicted_char = chars_from_ids(predicted_ids)
-    input_string = predicted_char.numpy().decode('utf-8')
+    input_string = predicted_char
     output_text += predicted_char
   return output_text.numpy().decode('utf-8')
 

@@ -68,12 +68,9 @@ def main(save_filename=None,  load_filename="class_model_weights.h5", do_train=F
         ids_from_chars = preprocessing.StringLookup(vocabulary=list(vocab))
         vocab_size = len(ids_from_chars.get_vocabulary())
         print("Loading model from disk...")
-        model = DrakeLSTM(vocab_size, embedding_dim)
+        model = DrakeGRUSequential(vocab_size, embedding_dim)
         utils.load_weights(load_filename, model, tf.TensorShape([1, vocab_size]))
-    
-    # Generate text, this currently isn't compatiable with class approach
     print("Generating Bars...please wait")
-    #seed_texts = ["[Verse]", "[Chorus]", "[Bridge]", "[Verse]", "[Chorus]", "[Bridge]"] 
     seed_texts = ["[Verse]", "you", "love", "boy", "I love", "I love you", "Kiki, ","Swanging"]
     for seed in seed_texts:
         num_chars=400
