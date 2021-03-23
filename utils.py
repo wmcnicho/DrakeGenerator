@@ -66,13 +66,37 @@ def split_data(input_data_arr, vocab_size, seq_length, total_splits=None):
   numpy_ys = np.array(agg_ys)
   return (numpy_xs, numpy_ys)
 
-# Generate text
-def generate_text(seed_text, model, seq_length, id_to_char_fn, chars_to_gen=300, random=False):
-  generated_text = seed_text
-  chars_from_ids = tf.keras.layers.experimental.preprocessing.StringLookup(vocabulary=id_to_char_fn.get_vocabulary(), invert=True)
+# Text generation methods to extract sequences from models
+def generate_text_one_h(seed_text, model, seq_length, char_to_id_fn, chars_to_gen=300, random=True):
+  output_text = seed_text
+  chars_from_ids = tf.keras.layers.experimental.preprocessing.StringLookup(vocabulary=char_to_id_fn.get_vocabulary(), invert=True)
+  vocab_size = len(char_to_id_fn.get_vocabulary())
   prev_state = None
   for _ in range(chars_to_gen):    
-      input_id = id_to_char_fn(tf.strings.unicode_split(generated_text, 'UTF-8'))
+    input_id = char_to_id_fn(tf.strings.unicode_split(output_text, 'UTF-8'))
+    input_logits = tf.keras.utils.to_categorical(input_id, num_classes=vocab_size)
+    input_logits = tf.expand_dims(input_logits, 0) # Add a dummy batch
+    predicted_logits, prev_state =  model(input_logits, states=prev_state, return_state=True)
+    if random is True:
+      # Default behavior random categorical, which take a sample based off the weight of the logits
+      predicted_ids = tf.random.categorical(predicted_logits, num_samples=1)
+      predicted_ids = tf.squeeze(predicted_ids, axis=-1)
+      str_from_ids = tf.strings.reduce_join(chars_from_ids(predicted_ids), axis=-1)
+    else:
+      # No random sampling, only take the max
+      predicted_ids = tf.argmax(predicted_logits[0])
+      # Convert from token ids to characters
+      str_from_ids = chars_from_ids(predicted_ids)
+    output_text += str_from_ids
+  return output_text.numpy().decode('utf-8')
+
+# Generate text
+def generate_text(seed_text, model, seq_length, char_to_id_fn, chars_to_gen=300, random=False):
+  generated_text = seed_text
+  chars_from_ids = tf.keras.layers.experimental.preprocessing.StringLookup(vocabulary=char_to_id_fn.get_vocabulary(), invert=True)
+  prev_state = None
+  for _ in range(chars_to_gen):    
+      input_id = char_to_id_fn(tf.strings.unicode_split(generated_text, 'UTF-8'))
       padded_input_arr = pad_sequences([input_id], maxlen=seq_length, padding='pre')
       padded_input = tf.convert_to_tensor([padded_input_arr[0]]) # Wrap in a rank 1 tensor for batch compatiability
       # Unique to class impl

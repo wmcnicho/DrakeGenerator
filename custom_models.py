@@ -31,22 +31,22 @@ class MyRNNCell(keras.layers.Layer):
       self.state_size = hidden_units
 
     def build(self, input_shape):
-      self.batch_size = input_shape[0]
       self.w_xh = self.add_weight(shape=(input_shape[-1], self.hidden_units), initializer='random_normal', trainable=True, name="W_xh")
       self.w_hh = self.add_weight(shape=(self.hidden_units, self.hidden_units), initializer='random_normal', trainable=True, name="W_hh")
       self.w_hy = self.add_weight(shape=(self.hidden_units, self.output_size), initializer='random_normal', trainable=True, name="W_hy")
     
     def get_initial_state(self, inputs=None, batch_size=None, dtype=None):
-      return tf.zeros([batch_size, self.hidden_units])
+      batch = batch_size if batch_size is not None else inputs.shape[0]
+      return tf.zeros((batch_size, self.hidden_units))
 
     def call(self, inputs, states):
+      if len(inputs.shape) is 1:
+        inputs = tf.expand_dims(inputs, 0)
       if states is None:
-        initial_states = tf.zeros([self.batch_size, self.hidden_units])
+        initial_states = self.get_initial_state(inputs)
       else:
         initial_states = states[0]
       #h_t = w_hh.prev_h + w_xh.inputs
-      # TODO check if 1d
-      #tf.expand_dims(batch_input,0)
       input_to_h =  tf.matmul(inputs, self.w_xh)
       weighted_prev_state =  tf.matmul(initial_states, self.w_hh) 
       next_state = input_to_h + weighted_prev_state

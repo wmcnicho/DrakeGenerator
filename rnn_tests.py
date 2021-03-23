@@ -11,9 +11,7 @@ class MyCellModelWrapper(keras.Model):
 
     def call(self, inputs, states=None, return_state=False, training=False):
         x = inputs
-        # if states is None:
-        #     states = self.rnn.get_initial_state(x)
-        x, states = self.rnn(x)
+        x, states = self.rnn(inputs=x)
         if return_state:
             return x, states
         else:
@@ -69,6 +67,14 @@ def create_alphabet_data(seq_length=30):
 def test_rnn_cell():
     tf.executing_eagerly()
     myCell = MyRNNCell(33)
+    input_1 = tf.random.normal(shape=(33,))
+    myCell.build(input_1.shape)
+    y = myCell.call(input_1, None)
+    y_2 = myCell(input_1, None)
+
+def test_rnn_cell_batch():
+    tf.executing_eagerly()
+    myCell = MyRNNCell(33)
     input_1 = tf.random.normal(shape=(32, 33))
     myCell.build(input_1.shape)
     y = myCell.call(input_1, None)
@@ -98,6 +104,10 @@ def test_basic_rnn():
     my_optimizer = keras.optimizers.Adam(lr=0.001)
     test_pred = model.predict(xs[:32])
     test_loss = my_loss(test_pred, ys[:32])
+
+    # test_input_2 = tf.random.normal(shape=(32, seq_length, 33))
+    # test_pred = model(1)
+
     print(model.summary())
     # for i in range(0, len(xs), 32):
     #     with tf.GradientTape() as tape:
@@ -107,15 +117,19 @@ def test_basic_rnn():
     #         #print(model.trainable_weights)
     #     grads = tape.gradient(loss_value, model.trainable_weights)
     #     my_optimizer.apply_gradients(zip(grads, model.trainable_variables))
-    model.fit(x=xs, y=ys, epochs=4, verbose=1)
+    # It usually only takes 2 epochs to get 100% accuracy
+    model.fit(x=xs, y=ys, epochs=1, verbose=1)
     print(model.summary())
-    generate_text('abc', model, seq_length, ids_from_chars_fn, chars_to_gen=100)
-    generate_text('jkl', model, seq_length, ids_from_chars_fn, chars_to_gen=100)
-    generate_text('jkl', model, seq_length, ids_from_chars_fn, chars_to_gen=100)
-    generate_text('xyz', model, seq_length, ids_from_chars_fn, chars_to_gen=100)
+    num_chars=100
+    seed_texts = ['abc','jkl','qrs','xyz']
+    for seed in seed_texts:
+        output_text = utils.generate_text_one_h(seed, model, seq_length, ids_from_chars_fn, chars_to_gen=num_chars, random=False)
+        print("Input seed: %s" % (seed))
+        print("%d sequence:\n%s\n" % (num_chars, output_text))
 
 def main():
-    #test_rnn_cell()
+    test_rnn_cell()
+    test_rnn_cell_batch()
     test_basic_rnn()
 
 if __name__ == "__main__":
