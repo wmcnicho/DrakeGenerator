@@ -46,8 +46,15 @@ def test_rnn_cell_batch():
     y = myCell.call(input_1, None)
     y_2 = myCell(input_1, None)
 
-def create_basic_rnn(output_size):
-    cell = MyRNNCell(output_size)
+def test_gru_cell():
+    tf.executing_eagerly()
+    myCell = MyGRUCell(33)
+    input_1 = tf.random.normal(shape=(33,))
+    myCell.build(input_1.shape)
+    y = myCell.call(input_1, None)
+    y_2 = myCell(input_1, None)
+
+def create_basic_rnn(output_size, cell):
     model = MyCellModelWrapper(cell)
     my_loss = tf.losses.CategoricalCrossentropy(from_logits=True)
     model.compile(loss=my_loss, 
@@ -59,7 +66,8 @@ def create_basic_rnn(output_size):
 def test_basic_rnn(doTrain=True, save_filename=None):
     seq_length = 30
     (xs, ys, vocab_size, ids_from_chars_fn) = create_alphabet_data(seq_length=30)
-    model = create_basic_rnn(vocab_size)
+    cell = MyRNNCell(vocab_size)
+    model = create_basic_rnn(vocab_size, cell)
     if doTrain:
         # test_input = keras.Input((vocab_size))
         #py_input = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,84,74,80]
@@ -89,10 +97,47 @@ def test_basic_rnn(doTrain=True, save_filename=None):
         print("Input seed: %s" % (seed))
         print("%d char sequence:\n%s\n" % (num_chars, output_text))
 
+def test_custom_gru(doTrain=True, save_filename=None):
+    seq_length = 30
+    (xs, ys, vocab_size, ids_from_chars_fn) = create_alphabet_data(seq_length=30)
+    cell = MyGRUCell(vocab_size)
+    model = create_basic_rnn(vocab_size, cell)
+    if doTrain:
+        # test_input = keras.Input((vocab_size))
+        #py_input = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,84,74,80]
+        #test_input = tf.variable(shape=(None, 30))
+        test_input = tf.random.normal(shape=(32, seq_length, 33))
+        y = model(test_input)
+        # For this implementation we expect a one-hot encode as input
+        my_loss = tf.losses.CategoricalCrossentropy(from_logits=True)
+        my_optimizer = keras.optimizers.Adam(lr=0.001)
+        test_pred = model.predict(xs[:32])
+        test_loss = my_loss(test_pred, ys[:32])
+
+        # test_input_2 = tf.random.normal(shape=(32, seq_length, 33))
+        # test_pred = model(1)
+
+        print(model.summary())
+        model.fit(x=xs, y=ys, epochs=5, verbose=1)
+        print(model.summary())
+        if save_filename is not None:
+            utils.save_model(save_filename, model, custom_dir='./models/test_model/custom_gru/')
+    else: 
+        utils.load_weights("alphabet_model_weights_5_epochs.h5", model, tf.TensorShape([32, 1, vocab_size]), custom_dir='./models/test_model/custom_gru/')
+    num_chars=100
+    seed_texts = ['abc','jkl','qrs','xyz']
+    for seed in seed_texts:
+        output_text = utils.generate_text_one_h(seed, model, seq_length, ids_from_chars_fn, chars_to_gen=num_chars, random=False)
+        print("Input seed: %s" % (seed))
+        print("%d char sequence:\n%s\n" % (num_chars, output_text))
+
+
 def main():
     test_rnn_cell()
-    test_rnn_cell_batch()
-    test_basic_rnn(doTrain=False)
+    #test_rnn_cell_batch()
+    #test_basic_rnn(doTrain=False)
+    test_gru_cell()
+    test_custom_gru(doTrain=False)
 
 if __name__ == "__main__":
     main()
