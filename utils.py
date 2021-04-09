@@ -79,7 +79,7 @@ def split_data_new(input_data_arr, vocab_size, seq_length, total_splits=None):
     start = i - seq_length
     end = i
     xs = input_data_arr[start:end]
-    ys = input_data_arr[end+1]
+    ys = input_data_arr[start+1:end+1]
     agg_xs.append(xs)
     agg_ys.append(ys)
   print("Total Number of data points to use: {}".format(len(agg_xs)))
@@ -99,6 +99,7 @@ def generate_text_one_h(seed_text, model, seq_length, char_to_id_fn, chars_to_ge
     input_logits = tf.keras.utils.to_categorical(input_id, num_classes=vocab_size)
     input_logits = tf.expand_dims(input_logits, 0) # Add a dummy batch
     predicted_logits, prev_state =  model(input_logits, states=prev_state, return_state=True)
+    predicted_logits = predicted_logits[:, -1, :]
     if random is True:
       # Default behavior random categorical, which take a sample based off the weight of the logits
       predicted_ids = tf.random.categorical(predicted_logits, num_samples=1)
@@ -142,8 +143,9 @@ def generate_text(seed_text, model, seq_length, char_to_id_fn, chars_to_gen=300,
         predicted_ids = tf.random.categorical(predicted_logits, num_samples=1)
         predicted_ids = tf.squeeze(predicted_ids, axis=-1)
         str_from_ids = tf.strings.reduce_join(chars_from_ids(predicted_ids), axis=-1)
-      new_char = str_from_ids.numpy().decode('utf-8')[-1]# Jump through the conversion hoops and grab character
-      generated_text += str_from_ids
+      decode = str_from_ids.numpy().decode('utf-8')
+      new_char = decode[-1] if len(decode) > 0 else decode# Jump through the conversion hoops and grab character
+      generated_text += new_char
   # Some conversion hoops for our text object
   #   generated_text = generated_text.numpy().decode('utf-8')
   # A quick filter so we don't get a Parental Advisory

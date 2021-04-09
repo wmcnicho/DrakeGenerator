@@ -8,7 +8,6 @@ import utils
 
 # Hyperparameters
 seq_length = 40
-embedding_dim = 256
 char_to_process = None # Set to None to use all
 
 ## Main code paths
@@ -36,7 +35,8 @@ def train_model(file_name=None, debug=False):
     (split_xs, split_ys) = utils.split_data_new(all_ids.numpy(), vocab_size, seq_length, total_splits=char_to_process)
     
     # Create the Model
-    cell = custom_models.MyRNNCell(vocab_size)
+    #cell = custom_models.MyRNNCell(vocab_size)
+    cell = custom_models.MyGRUCell(vocab_size)
     model = custom_models.MyCellModelWrapper(cell)
     my_loss = tf.losses.CategoricalCrossentropy(from_logits=True)
     model.compile(loss=my_loss, 
@@ -45,7 +45,7 @@ def train_model(file_name=None, debug=False):
                     run_eagerly=True)
     # Train the model
     # TODO run this in a gradient tape loop and play with batch randomization
-    model.fit(x=split_xs, y=split_ys, epochs=2, verbose=1, batch_size=64)
+    model.fit(x=split_xs, y=split_ys, epochs=5, verbose=1, batch_size=64)
             # for i in range(0, len(xs), 32):
         #     with tf.GradientTape() as tape:
         #         logits_batch = model(xs[i:i+32])
@@ -54,7 +54,6 @@ def train_model(file_name=None, debug=False):
         #         #print(model.trainable_weights)
         #     grads = tape.gradient(loss_value, model.trainable_weights)
         #     my_optimizer.apply_gradients(zip(grads, model.trainable_variables))
-        # It usually only takes 2 epochs to get 100% accuracy
     
     print(model.summary())
     if file_name is not None:
@@ -79,7 +78,9 @@ def main(save_filename=None,  load_filename="simple_rnn_custom_model_weights.h5"
         ids_from_chars = preprocessing.StringLookup(vocabulary=list(vocab))
         vocab_size = len(ids_from_chars.get_vocabulary())
         print("Loading model from disk...")
-        cell = custom_models.MyRNNCell(vocab_size)
+        #cell = custom_models.MyRNNCell(vocab_size)
+        cell = custom_models.MyGRUCell(vocab_size)
+        #cell = keras.layers.GRUCell(vocab_size)
         model = custom_models.MyCellModelWrapper(cell)
         utils.load_weights(load_filename, model, tf.TensorShape([1, seq_length, vocab_size]))
     print("Generating Bars...please wait")
@@ -96,4 +97,6 @@ def main(save_filename=None,  load_filename="simple_rnn_custom_model_weights.h5"
     return 0
 
 if __name__ == "__main__":
-    main(load_filename="simple_rnn_custom_model_weights.h5", do_train=False)
+  gru_filename = 'gru_custom_model_weights.h5'
+  vanilla_filename = 'simple_rnn_custom_model_weights.h5'
+  main(save_filename=gru_filename, load_filename=gru_filename, do_train=True)

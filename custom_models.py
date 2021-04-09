@@ -6,7 +6,6 @@ class DrakeGRUSequential(keras.Model):
         super().__init__()
         self.embed_layer = keras.layers.Embedding(vocab_size, embedding_dim)
         self.gru = tf.keras.layers.GRU(rnn_units, return_sequences=True, return_state=True)
-        #self.lstm = keras.layers.LSTM(lstm_units, return_state=True)
         self.reshape_layer = keras.layers.Dense(vocab_size)
 
     def call(self, inputs, states=None, return_state=False, training=False):
@@ -25,18 +24,20 @@ class DrakeGRUSequential(keras.Model):
 class MyCellModelWrapper(keras.Model):
     def __init__(self, cell):
         super().__init__()
-        self.rnn = keras.layers.RNN(cell, return_state=True)
+        self.rnn = keras.layers.RNN(cell, return_state=True, return_sequences=True)
 
     def call(self, inputs, states=None, return_state=False, training=False):
         x = inputs
-        x, states = self.rnn(inputs=x)
+        if states is None:
+            states = self.rnn.get_initial_state(x)
+        x, states = self.rnn(x, initial_state=states, training=training) # x= (batch_size, seq_length, vocab_size), states= (batch_sizes, hidden)
         if return_state:
             return x, states
         else:
             return x
 
 class MyRNNCell(keras.layers.Layer):
-    def __init__(self, output_size, hidden_units=10, **kwargs):
+    def __init__(self, output_size, hidden_units=150, **kwargs):
       super(MyRNNCell, self).__init__(**kwargs)
       self.hidden_units = hidden_units
       self.output_size = output_size
@@ -99,6 +100,7 @@ class MyGRUCell(keras.layers.Layer):
       # Update gate, info to pass on (same as simple RNN up until sigmoid)
       #z_t = \sigma(W^zx_t + U^(z)h_{t-1})
       z_in_x = tf.matmul(inputs, self.w_z) # (batch, hidden)
+      #assert z_in_x.shape == tf.TensorShape((batch, hidden))
       z_in_h = tf.matmul(initial_states, self.h_z) # (batch, hidden)
       z_t = tf.keras.activations.sigmoid(z_in_x + z_in_h)
       # Reset Gate, how much to forget

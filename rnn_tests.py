@@ -10,7 +10,7 @@ def create_alphabet_data(seq_length=30):
 
     @return Tuple of (xs, ys, vocab_size) as a training set from the alaphabet sample file
     """
-    data = open('./archive/alphabet.txt').read()
+    data = open('./archive/alphabet2.txt').read()
     #print('Length of text: {} characters'.format(len(data)))
     vocab = sorted(set(data))
     # This function as variable setup is weird to me but whatever
@@ -72,8 +72,8 @@ def test_basic_rnn(doTrain=True, save_filename=None):
         # test_input = keras.Input((vocab_size))
         #py_input = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,84,74,80]
         #test_input = tf.variable(shape=(None, 30))
-        test_input = tf.random.normal(shape=(32, seq_length, 33))
-        y = model(test_input)
+        test_input = tf.random.normal(shape=(32, seq_length, vocab_size))
+        y = model(test_input, training=False)
         # For this implementation we expect a one-hot encode as input
         my_loss = tf.losses.CategoricalCrossentropy(from_logits=True)
         my_optimizer = keras.optimizers.Adam(lr=0.001)
@@ -84,14 +84,14 @@ def test_basic_rnn(doTrain=True, save_filename=None):
         # test_pred = model(1)
 
         print(model.summary())
-        model.fit(x=xs, y=ys, epochs=5, verbose=1)
+        model.fit(x=xs, y=ys, epochs=2, verbose=1)
         print(model.summary())
         if save_filename is not None:
             utils.save_model(save_filename, model, custom_dir='./models/test_model/simple_custom_rnn/')
     else: 
-        utils.load_weights("alphabet_model_weights.h5", model, tf.TensorShape([32, 1, vocab_size]), custom_dir='./models/test_model/simple_custom_rnn/')
-    num_chars=100
-    seed_texts = ['abc','jkl','qrs','xyz']
+        utils.load_weights("alphabet_model_weights_3_epochs.h5", model, tf.TensorShape([32, 1, vocab_size]), custom_dir='./models/test_model/simple_custom_rnn/')
+    num_chars=400
+    seed_texts = ['abc','jkl','qrs','xyz', 'abb', 'jjkkll', 'xyy']
     for seed in seed_texts:
         output_text = utils.generate_text_one_h(seed, model, seq_length, ids_from_chars_fn, chars_to_gen=num_chars, random=True)
         print("Input seed: %s" % (seed))
@@ -101,6 +101,7 @@ def test_custom_gru(doTrain=True, save_filename=None):
     seq_length = 30
     (xs, ys, vocab_size, ids_from_chars_fn) = create_alphabet_data(seq_length=30)
     cell = MyGRUCell(vocab_size)
+    #cell = keras.layers.GRUCell(vocab_size)
     model = create_basic_rnn(vocab_size, cell)
     if doTrain:
         # test_input = keras.Input((vocab_size))
@@ -118,14 +119,14 @@ def test_custom_gru(doTrain=True, save_filename=None):
         # test_pred = model(1)
 
         print(model.summary())
-        model.fit(x=xs, y=ys, epochs=5, verbose=1)
+        model.fit(x=xs, y=ys, epochs=2, verbose=1)
         print(model.summary())
         if save_filename is not None:
             utils.save_model(save_filename, model, custom_dir='./models/test_model/custom_gru/')
     else: 
-        utils.load_weights("alphabet_model_weights_5_epochs.h5", model, tf.TensorShape([32, 1, vocab_size]), custom_dir='./models/test_model/custom_gru/')
+        utils.load_weights("alphabet_model_weights_3_epochs.h5", model, tf.TensorShape([32, 1, vocab_size]), custom_dir='./models/test_model/custom_gru/')
     num_chars=100
-    seed_texts = ['abc','jkl','qrs','xyz']
+    seed_texts = ['abc','jkl','qrs','xyz', 'abb', 'jjkkll', 'xyy']
     for seed in seed_texts:
         output_text = utils.generate_text_one_h(seed, model, seq_length, ids_from_chars_fn, chars_to_gen=num_chars, random=False)
         print("Input seed: %s" % (seed))
@@ -134,10 +135,10 @@ def test_custom_gru(doTrain=True, save_filename=None):
 
 def main():
     test_rnn_cell()
-    #test_rnn_cell_batch()
-    #test_basic_rnn(doTrain=False)
-    test_gru_cell()
-    test_custom_gru(doTrain=False)
+    test_rnn_cell_batch()
+    test_basic_rnn(doTrain=True, save_filename='alphabet_2_model_weights.h5')
+    #test_gru_cell()
+    #test_custom_gru(doTrain=False, save_filename='alphabet_model_weights_3_epochs.h5')
 
 if __name__ == "__main__":
     main()

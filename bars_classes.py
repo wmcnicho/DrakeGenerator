@@ -78,8 +78,8 @@ def main(save_filename=None,  load_filename="class_model_weights.h5", do_train=F
         print(">>>>>>>>>>>>>>>>>>>>")
         print("Input seed: %s" % (seed))
         print("%d character generated sequence:\n%s\n" % (num_chars, output_text))
-        print("<<<<<<<<<<<<<<<<<<<<")
         print("End of output for seed: %s" % (seed))
+        print("<<<<<<<<<<<<<<<<<<<<")
     #Hope you enjoyed :)
     return 0
 
