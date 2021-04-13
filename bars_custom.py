@@ -36,8 +36,11 @@ def train_model(file_name=None, debug=False, num_epochs=2):
     
     # Create the Model
     #cell = custom_models.MyRNNCell(vocab_size)
-    cell = custom_models.MyGRUCell(vocab_size)
-    model = custom_models.MyCellModelWrapper(cell)
+    # cell = custom_models.MyGRUCell(vocab_size)
+    # model = custom_models.MyCellModelWrapper(cell)
+
+    cell = keras.layers.SimpleRNNCell(150)
+    model = custom_models.KerasRNNCellWrapper(cell, vocab_size)
     my_loss = tf.losses.CategoricalCrossentropy(from_logits=True)
     model.compile(loss=my_loss, 
                     optimizer=keras.optimizers.Adam(lr=0.001),
@@ -72,7 +75,6 @@ def main(save_filename=None,  load_filename="simple_rnn_custom_model_weights.h5"
         print("Loading model from disk...")
         #cell = custom_models.MyRNNCell(vocab_size)
         cell = custom_models.MyGRUCell(vocab_size)
-        #cell = keras.layers.GRUCell(vocab_size)
         model = custom_models.MyCellModelWrapper(cell)
         utils.load_weights(load_filename, model, tf.TensorShape([1, seq_length, vocab_size]))
     print("Generating Bars...please wait")
@@ -91,4 +93,4 @@ def main(save_filename=None,  load_filename="simple_rnn_custom_model_weights.h5"
 if __name__ == "__main__":
   gru_filename = 'gru_custom_model_weights.h5'
   vanilla_filename = 'simple_rnn_custom_model_weights.h5'
-  main(do_train=True, num_epochs=5)
+  main(do_train=True, num_epochs=2)
