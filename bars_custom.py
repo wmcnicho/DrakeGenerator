@@ -11,7 +11,7 @@ seq_length = 40
 char_to_process = None # Set to None to use all
 
 ## Main code paths
-def train_model(file_name=None, debug=False):
+def train_model(file_name=None, debug=False, num_epochs=2):
     """ Codepath to process input and train (as opposed to load up and generate)"""
     # Load Data
     data = open('./archive/drake_lyrics.txt').read()
@@ -35,8 +35,8 @@ def train_model(file_name=None, debug=False):
     (split_xs, split_ys) = utils.split_data_new(all_ids.numpy(), vocab_size, seq_length, total_splits=char_to_process)
     
     # Create the Model
-    cell = custom_models.MyRNNCell(vocab_size)
-    #cell = custom_models.MyGRUCell(vocab_size)
+    #cell = custom_models.MyRNNCell(vocab_size)
+    cell = custom_models.MyGRUCell(vocab_size)
     model = custom_models.MyCellModelWrapper(cell)
     my_loss = tf.losses.CategoricalCrossentropy(from_logits=True)
     model.compile(loss=my_loss, 
@@ -45,18 +45,18 @@ def train_model(file_name=None, debug=False):
                     run_eagerly=True)
     # Train the model
     # TODO run this in a gradient tape loop and play with batch randomization
-    model.fit(x=split_xs, y=split_ys, epochs=5, verbose=1, batch_size=64)
+    model.fit(x=split_xs, y=split_ys, epochs=num_epochs, verbose=1, batch_size=64)
     
     print(model.summary())
     if file_name is not None:
       utils.save_model(file_name, model)
     return (model, vocab)
 
-def main(save_filename=None,  load_filename="simple_rnn_custom_model_weights.h5", do_train=False):
+def main(save_filename=None,  load_filename="simple_rnn_custom_model_weights.h5", do_train=False, num_epochs=2):
     """ Entry point """
     if do_train:
       print("Training and saving model...")
-      (model, vocab) = train_model(file_name=save_filename)
+      (model, vocab) = train_model(file_name=save_filename, num_epochs=num_epochs)
       ids_from_chars = preprocessing.StringLookup(vocabulary=list(vocab))
       vocab_size = len(ids_from_chars.get_vocabulary())
     else:
@@ -70,8 +70,8 @@ def main(save_filename=None,  load_filename="simple_rnn_custom_model_weights.h5"
         ids_from_chars = preprocessing.StringLookup(vocabulary=list(vocab))
         vocab_size = len(ids_from_chars.get_vocabulary())
         print("Loading model from disk...")
-        cell = custom_models.MyRNNCell(vocab_size)
-        #cell = custom_models.MyGRUCell(vocab_size)
+        #cell = custom_models.MyRNNCell(vocab_size)
+        cell = custom_models.MyGRUCell(vocab_size)
         #cell = keras.layers.GRUCell(vocab_size)
         model = custom_models.MyCellModelWrapper(cell)
         utils.load_weights(load_filename, model, tf.TensorShape([1, seq_length, vocab_size]))
@@ -91,4 +91,4 @@ def main(save_filename=None,  load_filename="simple_rnn_custom_model_weights.h5"
 if __name__ == "__main__":
   gru_filename = 'gru_custom_model_weights.h5'
   vanilla_filename = 'simple_rnn_custom_model_weights.h5'
-  main(save_filename=vanilla_filename, load_filename=vanilla_filename, do_train=True)
+  main(do_train=True, num_epochs=5)

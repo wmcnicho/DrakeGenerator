@@ -107,7 +107,7 @@ def test_custom_gru(doTrain=True, save_filename=None):
         # test_input = keras.Input((vocab_size))
         #py_input = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,84,74,80]
         #test_input = tf.variable(shape=(None, 30))
-        test_input = tf.random.normal(shape=(32, seq_length, 33))
+        test_input = tf.random.normal(shape=(32, seq_length, vocab_size))
         y = model(test_input)
         # For this implementation we expect a one-hot encode as input
         my_loss = tf.losses.CategoricalCrossentropy(from_logits=True)
@@ -119,7 +119,7 @@ def test_custom_gru(doTrain=True, save_filename=None):
         # test_pred = model(1)
 
         print(model.summary())
-        model.fit(x=xs, y=ys, epochs=2, verbose=1)
+        model.fit(x=xs, y=ys, epochs=4, verbose=1)
         print(model.summary())
         if save_filename is not None:
             utils.save_model(save_filename, model, custom_dir='./models/test_model/custom_gru/')
@@ -162,10 +162,10 @@ def main():
     #test_rnn_cell()
     #test_rnn_cell_batch()
     #test_basic_rnn(doTrain=True, save_filename='alphabet_2_model_weights.h5')
-    #test_gru_cell()
-    #test_custom_gru(doTrain=False, save_filename='alphabet_model_weights_3_epochs.h5')
+    test_gru_cell()
+    test_custom_gru(doTrain=True, save_filename=None)
     #test_custom_loss()
-    test_custom_training_loop()
+    #test_custom_training_loop()
 
 if __name__ == "__main__":
     main()

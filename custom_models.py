@@ -79,12 +79,22 @@ class MyGRUCell(keras.layers.Layer):
       self.state_size = hidden_units
 
     def build(self, input_shape):
-      self.w_z = self.add_weight(shape=(input_shape[-1], self.hidden_units), initializer='random_normal', trainable=True, name="Input Update Weights")
-      self.h_z = self.add_weight(shape=(self.hidden_units, self.hidden_units), initializer='random_normal', trainable=True, name="Hidden Update Weights")
-      self.w_r = self.add_weight(shape=(input_shape[-1], self.hidden_units), initializer='random_normal', trainable=True, name="Input Reset Weights")
-      self.h_r = self.add_weight(shape=(self.hidden_units, self.hidden_units), initializer='random_normal', trainable=True, name="Hidden Reset Weights")
-      self.w_mc = self.add_weight(shape=(input_shape[-1], self.hidden_units), initializer='random_normal', trainable=True, name="Input Memory Context Weights")
-      self.h_mc = self.add_weight(shape=(self.hidden_units, self.hidden_units), initializer='random_normal', trainable=True, name="Hidden Memory Context Weights")
+      # Weight matricies between input and each gate (input_size, hidden)
+      self.w_z = self.add_weight(shape=(input_shape[-1], self.hidden_units), initializer='random_normal', trainable=True, name="Update Input Weights")
+      self.w_r = self.add_weight(shape=(input_shape[-1], self.hidden_units), initializer='random_normal', trainable=True, name="Reset Input Weights")
+      self.w_h = self.add_weight(shape=(input_shape[-1], self.hidden_units), initializer='random_normal', trainable=True, name="Intermediate Input Weights")
+
+      # Weight matricies between prev_hidden and each gate (hidden, hidden)
+      self.u_z = self.add_weight(shape=(self.hidden_units, self.hidden_units), initializer='random_normal', trainable=True, name="Update Hidden Weights")
+      self.u_r = self.add_weight(shape=(self.hidden_units, self.hidden_units), initializer='random_normal', trainable=True, name="Reset Hidden Weights")
+      self.u_h = self.add_weight(shape=(self.hidden_units, self.hidden_units), initializer='random_normal', trainable=True, name="Intermediate Hidden Weights")
+
+      # Bias vectors for each gate (hidden)
+      self.b_z = self.add_weight(shape=(self.hidden_units), initializer=tf.keras.initializers.Constant(value=-1), trainable=True, name="Update Gate Bias")
+      self.b_r = self.add_weight(shape=(self.hidden_units), initializer=tf.keras.initializers.Constant(value=-1), trainable=True, name="Reset Gate Bias")
+      self.b_h = self.add_weight(shape=(self.hidden_units), initializer=tf.keras.initializers.Constant(value=-1), trainable=True, name="Intermediate Gate Bias")
+
+      # Implementaion specific, dense to map hidden to output_size (hidden, output)
       self.w_y = self.add_weight(shape=(self.hidden_units, self.output_size), initializer='random_normal', trainable=True, name="Hidden to outputs")
       
     def get_initial_state(self, inputs=None, batch_size=None, dtype=None):
@@ -99,33 +109,31 @@ class MyGRUCell(keras.layers.Layer):
       else:
         initial_states = states[0] # (batch, hidden)
       # Update gate, info to pass on (same as simple RNN up until sigmoid)
-      #z_t = \sigma(W^zx_t + U^(z)h_{t-1})
+      #z_t = \sigma(W^zx_t + U^(z)h_{t-1} + b_z)
       z_in_x = tf.matmul(inputs, self.w_z) # (batch, hidden)
-      #assert z_in_x.shape == tf.TensorShape((batch, hidden))
-      z_in_h = tf.matmul(initial_states, self.h_z) # (batch, hidden)
-      z_t = tf.keras.activations.sigmoid(z_in_x + z_in_h)
+      z_in_h = tf.matmul(initial_states, self.u_z) # (batch, hidden)
+      z_t = tf.keras.activations.sigmoid(z_in_x + z_in_h + self.b_z)
       # Reset Gate, how much to forget
-      #r_t = \sigma(W^rx_t + U^rh_{t-1})
+      #r_t = \sigma(W^rx_t + U^rh_{t-1} + b_r)
       r_in_x = tf.matmul(inputs, self.w_r) # (batch, hidden)
-      r_in_h = tf.matmul(initial_states, self.h_r) # (batch, hidden)
-      r_t = tf.keras.activations.sigmoid(r_in_x + r_in_h)
+      r_in_h = tf.matmul(initial_states, self.u_r) # (batch, hidden)
+      r_t = tf.keras.activations.sigmoid(r_in_x + r_in_h + self.b_r)
       # Current memory context
-      # hc_t=tanh(Wx_t + r_t . Uh_{t-1})
-      hc_in_x = tf.matmul(inputs, self.w_mc) # (batch, hidden)
-      hc_in_h = tf.matmul(initial_states, self.h_mc) # (batch, hidden)
-      hc_reset = tf.multiply(r_t, hc_in_h) # (batch, hidden)
-      h_ct = tf.keras.activations.sigmoid(hc_in_x + hc_reset)
+      # ~h_t = tanh(W_hx_t + U_h(r_t . h_t-1) + b_h)
+      hc_in_x = tf.matmul(inputs, self.w_h) # (batch, hidden)
+      hc_reset = tf.multiply(r_t, initial_states) # (batch, hidden)
+      hc_in_h = tf.matmul(hc_reset, self.u_h) # (batch, hidden)
+      h_ct = tf.keras.activations.tanh(hc_in_x + hc_in_h + self.b_h)
 
       # Final memory, Combination of current context and previous memories
-      # h_t=z_t.h_{t-1} + (1-z_t).hc_t
-      # Does order matter here?...
-      up_gate_hidden = tf.multiply(z_t, initial_states) # (batch, hidden)
+      # h_t=(1-z_t).hc_t + z_t.h_{t-1}
       one_matrix = tf.ones(z_t.shape)
       flip_z = one_matrix - z_t # (batch, hidden)
-      # flip * h_ct
       rh_ht = tf.multiply(flip_z, h_ct)
-      next_state = up_gate_hidden + rh_ht # (batch, hidden)
+      up_gate_hidden = tf.multiply(z_t, initial_states) # (batch, hidden)
+      next_state = rh_ht + up_gate_hidden # (batch, hidden)
 
+      # Map hidden state to output
       output = tf.matmul(next_state, self.w_y) # (batch, output_size)
       return output, next_state
 
