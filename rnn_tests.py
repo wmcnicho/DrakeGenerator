@@ -1,7 +1,7 @@
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.layers.experimental import preprocessing
-from custom_models import MyRNNCell, MyCellModelWrapper, MyGRUCell
+from custom_models import MyRNNCell, MyCellModelWrapper, MyGRUCell, MyCrossEntropyLoss
 import utils
 
 def create_alphabet_data(seq_length=30):
@@ -132,13 +132,40 @@ def test_custom_gru(doTrain=True, save_filename=None):
         print("Input seed: %s" % (seed))
         print("%d char sequence:\n%s\n" % (num_chars, output_text))
 
+def test_custom_loss():
+    actual_output = tf.random.normal(shape=(32, 1, 33))
+    test_output = tf.random.normal(shape=(32, 1, 33))
+    keras_loss = tf.losses.CategoricalCrossentropy(from_logits=True)
+    lib_loss_result = keras_loss(actual_output, test_output)
+    my_loss = MyCrossEntropyLoss()
+    my_loss_result = my_loss(actual_output, test_output)
+    # Assert they are identical
+
+def test_custom_training_loop():
+    seq_length = 30
+    (xs, ys, vocab_size, ids_from_chars_fn) = create_alphabet_data(seq_length=30)
+    cell = MyGRUCell(vocab_size)
+    #cell = keras.layers.GRUCell(vocab_size)
+    model = create_basic_rnn(vocab_size, cell)
+    my_loss = tf.losses.CategoricalCrossentropy(from_logits=True)
+    my_optimizer = keras.optimizers.Adam(lr=0.001)
+    for i in range(0, len(xs), 32):
+        with tf.GradientTape() as tape:
+            logits_batch = model(xs[i:i+32])
+            loss_value = my_loss(ys[i:i+32], logits_batch)
+            loss_value += sum(model.losses)
+            #print(model.trainable_weights)
+        grads = tape.gradient(loss_value, model.trainable_weights)
+        my_optimizer.apply_gradients(zip(grads, model.trainable_variables))
 
 def main():
-    test_rnn_cell()
-    test_rnn_cell_batch()
-    test_basic_rnn(doTrain=True, save_filename='alphabet_2_model_weights.h5')
+    #test_rnn_cell()
+    #test_rnn_cell_batch()
+    #test_basic_rnn(doTrain=True, save_filename='alphabet_2_model_weights.h5')
     #test_gru_cell()
     #test_custom_gru(doTrain=False, save_filename='alphabet_model_weights_3_epochs.h5')
+    #test_custom_loss()
+    test_custom_training_loop()
 
 if __name__ == "__main__":
     main()

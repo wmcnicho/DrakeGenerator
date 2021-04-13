@@ -1,5 +1,6 @@
 import tensorflow as tf
 from tensorflow import keras
+from numpy import log2
 
 class DrakeGRUSequential(keras.Model):
     def __init__(self, vocab_size, embedding_dim, rnn_units=150):
@@ -127,3 +128,9 @@ class MyGRUCell(keras.layers.Layer):
 
       output = tf.matmul(next_state, self.w_y) # (batch, output_size)
       return output, next_state
+
+class MyCrossEntropyLoss(tf.keras.losses.Loss):
+  def call(self, y_true, y_pred):
+    # -sum([p[i] * log2(q[i]) for i in range len(p)])
+    cce = -sum([y_true[i] * log2(y_pred[i]) for i in range(len(y_true))])
+    return cce
