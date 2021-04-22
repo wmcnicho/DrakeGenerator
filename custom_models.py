@@ -36,6 +36,23 @@ class MyCellModelWrapper(keras.Model):
             return x, states
         else:
             return x
+          
+class KerasRNNCellWrapper(keras.Model):
+    def __init__(self, cell, output_size):
+        super().__init__()
+        self.rnn = keras.layers.RNN(cell, return_state=True, return_sequences=True)
+        self.reshape_layer = keras.layers.Dense(output_size)
+
+    def call(self, inputs, states=None, return_state=False, training=False):
+        x = inputs
+        if states is None:
+            states = self.rnn.get_initial_state(x)
+        x, states = self.rnn(x, initial_state=states, training=training) # x= (batch_size, seq_length, vocab_size), states= (batch_sizes, hidden)
+        x = self.reshape_layer(x, training=training)
+        if return_state:
+            return x, states
+        else:
+            return x
 
 class MyRNNCell(keras.layers.Layer):
     def __init__(self, output_size, hidden_units=150, **kwargs):

@@ -5,7 +5,6 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 import numpy as np
 import os
 import time
-import matplotlib.pyplot as plt
 
 # Hyperparameters
 seq_length = 40

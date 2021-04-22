@@ -5,13 +5,30 @@ import custom_models
 
 import numpy as np
 import utils
+import sys
+from distutils import util
 
 # Hyperparameters
 seq_length = 40
-char_to_process = None # Set to None to use all
+char_to_process = 25000 # Set to None to use all
 
+def parse_cli():
+  """ Simple helper to parse the command line args. I'm using sys only here to prevent unncessary dependencies in remote enviornments. """
+  print("This is the name of the program:", sys.argv[0])
+  epochs = 2
+  cell_type = 'gru'
+  do_train=True
+  for arg in sys.argv:
+    if 'cell_type' in arg:
+      cell_type = arg.split('=')[1]
+    if 'epochs' in arg:
+      epochs = int(arg.split('=')[1])
+    if 'train' in arg:
+      train_string = arg.split('=')[1]
+      do_train = bool(util.strtobool(train_string))
+  return cell_type, epochs, do_train
 ## Main code paths
-def train_model(file_name=None, debug=False, num_epochs=2):
+def train_model(file_name=None, debug=False, num_epochs=2, cell_type='gru'):
     """ Codepath to process input and train (as opposed to load up and generate)"""
     # Load Data
     data = open('./archive/drake_lyrics.txt').read()
@@ -35,12 +52,18 @@ def train_model(file_name=None, debug=False, num_epochs=2):
     (split_xs, split_ys) = utils.split_data_new(all_ids.numpy(), vocab_size, seq_length, total_splits=char_to_process)
     
     # Create the Model
-    #cell = custom_models.MyRNNCell(vocab_size)
-    # cell = custom_models.MyGRUCell(vocab_size)
-    # model = custom_models.MyCellModelWrapper(cell)
-
-    cell = keras.layers.SimpleRNNCell(150)
-    model = custom_models.KerasRNNCellWrapper(cell, vocab_size)
+    if cell_type == 'gru':
+      cell = custom_models.MyGRUCell(vocab_size)
+      model = custom_models.MyCellModelWrapper(cell)
+    elif cell_type == 'rnn' or cell_type == 'simple':
+      cell = custom_models.MyRNNCell(vocab_size)
+      model = custom_models.MyCellModelWrapper(cell)
+    elif cell_type == 'keras' or cell_type == 'keras_gru':
+      cell = keras.layers.SimpleRNNCell(150)
+      model = custom_models.KerasRNNCellWrapper(cell, vocab_size)
+    else:
+      print("Fatal ERROR: cell_type provided does not match supported options, terminating.")
+      return -1
     my_loss = tf.losses.CategoricalCrossentropy(from_logits=True)
     model.compile(loss=my_loss, 
                     optimizer=keras.optimizers.Adam(lr=0.001),
@@ -55,7 +78,7 @@ def train_model(file_name=None, debug=False, num_epochs=2):
       utils.save_model(file_name, model)
     return (model, vocab)
 
-def main(save_filename=None,  load_filename="simple_rnn_custom_model_weights.h5", do_train=False, num_epochs=2):
+def main(save_filename=None, load_filename="simple_rnn_custom_model_weights.h5", do_train=False, num_epochs=2, cell_type='gru'):
     """ Entry point """
     if do_train:
       print("Training and saving model...")
@@ -91,6 +114,7 @@ def main(save_filename=None,  load_filename="simple_rnn_custom_model_weights.h5"
     return 0
 
 if __name__ == "__main__":
+  cell_type, epochs, do_train = parse_cli()
   gru_filename = 'gru_custom_model_weights.h5'
   vanilla_filename = 'simple_rnn_custom_model_weights.h5'
-  main(do_train=True, num_epochs=2)
+  main(do_train=do_train, num_epochs=epochs, cell_type=cell_type)

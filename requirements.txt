@@ -1,0 +1,7 @@
+###### Requirements without Version Specifiers ######
+tensorflow
+sacred
+numpy
+
+###### Requirements with Version Specifiers ######
+#docopt == 0.6.1  

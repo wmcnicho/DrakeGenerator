@@ -1,7 +1,6 @@
 import tensorflow as tf
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow import keras
-import matplotlib.pyplot as plt
 import numpy as np
 
 output_dir = "./models/class_model/classes_bars/"
