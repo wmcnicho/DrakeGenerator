@@ -1,3 +1,5 @@
+from sacred import Experiment
+
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras.layers.experimental import preprocessing
@@ -8,9 +10,19 @@ import utils
 import sys
 from distutils import util
 
+ex = Experiment()
+
 # Hyperparameters
 seq_length = 40
 char_to_process = 25000 # Set to None to use all
+
+@ex.config
+def not_my_config():
+  save_filename=None
+  load_filename=None
+  do_train=True
+  num_epochs=2
+  cell_type='gru'
 
 def parse_cli():
   """ Simple helper to parse the command line args. I'm using sys only here to prevent unncessary dependencies in remote enviornments. """
@@ -78,7 +90,8 @@ def train_model(file_name=None, debug=False, num_epochs=2, cell_type='gru'):
       utils.save_model(file_name, model)
     return (model, vocab)
 
-def main(save_filename=None, load_filename="simple_rnn_custom_model_weights.h5", do_train=False, num_epochs=2, cell_type='gru'):
+@ex.main
+def main(save_filename, load_filename, do_train, num_epochs, cell_type):
     """ Entry point """
     if do_train:
       print("Training and saving model...")
@@ -114,7 +127,4 @@ def main(save_filename=None, load_filename="simple_rnn_custom_model_weights.h5",
     return 0
 
 if __name__ == "__main__":
-  cell_type, epochs, do_train = parse_cli()
-  gru_filename = 'gru_custom_model_weights.h5'
-  vanilla_filename = 'simple_rnn_custom_model_weights.h5'
-  main(do_train=do_train, num_epochs=epochs, cell_type=cell_type)
+  ex.run_commandline()
