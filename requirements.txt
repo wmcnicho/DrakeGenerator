@@ -1,5 +1,7 @@
 ###### Requirements without Version Specifiers ######
 tensorflow
+pymongo
+dnspython
 sacred
 numpy
 
