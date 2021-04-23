@@ -22,7 +22,7 @@ char_to_process = None # Set to None to use all
 @ex.config
 def not_my_config():
   # Hyperparameters
-  seq_length = 40
+  seq_length=40
   save_filename=None
   load_filename=None
   do_train=True
@@ -47,7 +47,7 @@ def parse_cli():
       do_train = bool(util.strtobool(train_string))
   return cell_type, epochs, do_train
 ## Main code paths
-def train_model(file_name=None, debug=False, num_epochs=2, cell_type='gru', batch_size=64, hidden_size=150):
+def train_model(file_name=None, debug=False, num_epochs=2, cell_type='gru', batch_size=64, hidden_size=150, seq_length=40):
     """ Codepath to process input and train (as opposed to load up and generate)"""
     # Load Data
     data = open('./archive/drake_lyrics.txt').read()
@@ -86,8 +86,7 @@ def train_model(file_name=None, debug=False, num_epochs=2, cell_type='gru', batc
     my_loss = tf.losses.CategoricalCrossentropy(from_logits=True)
     model.compile(loss=my_loss, 
                     optimizer=keras.optimizers.Adam(lr=0.001),
-                    metrics=['accuracy'],
-                    run_eagerly=True)
+                    metrics=['accuracy'])
     # Train the model
     # TODO run this in a gradient tape loop and play with batch randomization
     model.fit(x=split_xs, y=split_ys, epochs=num_epochs, verbose=1, batch_size=batch_size)
@@ -102,7 +101,7 @@ def main(save_filename, load_filename, do_train, num_epochs, cell_type, batch_si
     """ Entry point """
     if do_train:
       print("Training and saving model...")
-      (model, vocab) = train_model(file_name=save_filename, num_epochs=num_epochs, batch_size)
+      (model, vocab) = train_model(file_name=save_filename, num_epochs=num_epochs, batch_size=batch_size, hidden_size=hidden_size, seq_length=seq_length)
       ids_from_chars = preprocessing.StringLookup(vocabulary=list(vocab))
       vocab_size = len(ids_from_chars.get_vocabulary())
     else:
