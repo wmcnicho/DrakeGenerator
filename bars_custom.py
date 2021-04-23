@@ -14,12 +14,12 @@ from distutils import util
 
 ex = Experiment(save_git_info=False)
 ex.observers.append(MongoObserver(
-    url=os.environ('DRAKEMONGOURL')
+    url=os.environ['DRAKEMONGOURL'],
     db_name='myFirstDatabase'))
 
 # Hyperparameters
 seq_length = 40
-char_to_process = 25000 # Set to None to use all
+char_to_process = None # Set to None to use all
 
 @ex.config
 def not_my_config():
