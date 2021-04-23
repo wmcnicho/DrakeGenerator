@@ -28,6 +28,7 @@ def not_my_config():
   do_train=True
   num_epochs=2
   cell_type='gru'
+  batch_size=64
 
 def parse_cli():
   """ Simple helper to parse the command line args. I'm using sys only here to prevent unncessary dependencies in remote enviornments. """
@@ -45,7 +46,7 @@ def parse_cli():
       do_train = bool(util.strtobool(train_string))
   return cell_type, epochs, do_train
 ## Main code paths
-def train_model(file_name=None, debug=False, num_epochs=2, cell_type='gru'):
+def train_model(file_name=None, debug=False, num_epochs=2, cell_type='gru', batch_size=64):
     """ Codepath to process input and train (as opposed to load up and generate)"""
     # Load Data
     data = open('./archive/drake_lyrics.txt').read()
@@ -88,7 +89,7 @@ def train_model(file_name=None, debug=False, num_epochs=2, cell_type='gru'):
                     run_eagerly=True)
     # Train the model
     # TODO run this in a gradient tape loop and play with batch randomization
-    model.fit(x=split_xs, y=split_ys, epochs=num_epochs, verbose=1, batch_size=64)
+    model.fit(x=split_xs, y=split_ys, epochs=num_epochs, verbose=1, batch_size=batch_size)
     
     print(model.summary())
     if file_name is not None:
@@ -96,11 +97,11 @@ def train_model(file_name=None, debug=False, num_epochs=2, cell_type='gru'):
     return (model, vocab)
 
 @ex.main
-def main(save_filename, load_filename, do_train, num_epochs, cell_type):
+def main(save_filename, load_filename, do_train, num_epochs, cell_type, batch_size):
     """ Entry point """
     if do_train:
       print("Training and saving model...")
-      (model, vocab) = train_model(file_name=save_filename, num_epochs=num_epochs)
+      (model, vocab) = train_model(file_name=save_filename, num_epochs=num_epochs, batch_size)
       ids_from_chars = preprocessing.StringLookup(vocabulary=list(vocab))
       vocab_size = len(ids_from_chars.get_vocabulary())
     else:
