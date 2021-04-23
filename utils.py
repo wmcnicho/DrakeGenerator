@@ -66,7 +66,7 @@ def split_data(input_data_arr, vocab_size, seq_length, total_splits=None):
   numpy_ys = np.array(agg_ys)
   return (numpy_xs, numpy_ys)
 
-def split_data_new(input_data_arr, vocab_size, seq_length, total_splits=None):
+def split_data_new(input_data_arr, vocab_size, seq_length, total_splits=None, step=1):
   # This data split works slightly differently but is much faster
   # Output is one-hot encoded to the output
   total_chars = len(input_data_arr)
@@ -74,7 +74,7 @@ def split_data_new(input_data_arr, vocab_size, seq_length, total_splits=None):
     total_splits = total_chars-seq_length-1
   agg_xs = []
   agg_ys = []
-  for i in range(seq_length, total_splits-1):
+  for i in range(seq_length, total_splits-1, step):
     start = i - seq_length
     end = i
     xs = input_data_arr[start:end]

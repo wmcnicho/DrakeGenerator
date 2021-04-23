@@ -17,18 +17,19 @@ ex.observers.append(MongoObserver(
     url=os.environ['DRAKEMONGOURL'],
     db_name='myFirstDatabase'))
 
-# Hyperparameters
-seq_length = 40
 char_to_process = None # Set to None to use all
 
 @ex.config
 def not_my_config():
+  # Hyperparameters
+  seq_length = 40
   save_filename=None
   load_filename=None
   do_train=True
   num_epochs=2
   cell_type='gru'
   batch_size=64
+  hidden_size=150
 
 def parse_cli():
   """ Simple helper to parse the command line args. I'm using sys only here to prevent unncessary dependencies in remote enviornments. """
@@ -46,7 +47,7 @@ def parse_cli():
       do_train = bool(util.strtobool(train_string))
   return cell_type, epochs, do_train
 ## Main code paths
-def train_model(file_name=None, debug=False, num_epochs=2, cell_type='gru', batch_size=64):
+def train_model(file_name=None, debug=False, num_epochs=2, cell_type='gru', batch_size=64, hidden_size=150):
     """ Codepath to process input and train (as opposed to load up and generate)"""
     # Load Data
     data = open('./archive/drake_lyrics.txt').read()
@@ -67,14 +68,14 @@ def train_model(file_name=None, debug=False, num_epochs=2, cell_type='gru', batc
 
     # Creating dataset from pre-processed text
     print("Splitting file into dataset")
-    (split_xs, split_ys) = utils.split_data_new(all_ids.numpy(), vocab_size, seq_length, total_splits=char_to_process)
+    (split_xs, split_ys) = utils.split_data_new(all_ids.numpy(), vocab_size, seq_length, total_splits=char_to_process, step=seq_length)
     
     # Create the Model
     if cell_type == 'gru':
-      cell = custom_models.MyGRUCell(vocab_size)
+      cell = custom_models.MyGRUCell(vocab_size, hidden_size=hidden_size)
       model = custom_models.MyCellModelWrapper(cell)
     elif cell_type == 'rnn' or cell_type == 'simple':
-      cell = custom_models.MyRNNCell(vocab_size)
+      cell = custom_models.MyRNNCell(vocab_size, hidden_size=hidden_size)
       model = custom_models.MyCellModelWrapper(cell)
     elif cell_type == 'keras' or cell_type == 'keras_gru':
       cell = keras.layers.SimpleRNNCell(150)
@@ -97,7 +98,7 @@ def train_model(file_name=None, debug=False, num_epochs=2, cell_type='gru', batc
     return (model, vocab)
 
 @ex.main
-def main(save_filename, load_filename, do_train, num_epochs, cell_type, batch_size):
+def main(save_filename, load_filename, do_train, num_epochs, cell_type, batch_size, hidden_size, seq_length):
     """ Entry point """
     if do_train:
       print("Training and saving model...")
