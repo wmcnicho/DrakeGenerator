@@ -1,8 +1,7 @@
 # Local command:
-# docker  run  -v `pwd`:`pwd` -w `pwd` -i -t tensorflow/tensorflow python3 bars_custom.py epochs=8 cell_type=gru train=t
-
-#git clone https://github.com/wmcnicho/DrakeGenerator.git
-
-#pip install -r ./requirements.txt
-
-#python3 bars_custom.py epochs=8 cell_type=gru train=t
+export DRAKEMONGOURL='REDACTED'
+git clone https://github.com/wmcnicho/DrakeGenerator.git
+cd DrakeGenerator
+git checkout sacredSetup
+pip3 install -r requirements.txt
+python3 bars_custom.py with cell_type=gru num_epochs=5
