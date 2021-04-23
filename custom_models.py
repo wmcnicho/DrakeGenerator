@@ -89,7 +89,7 @@ class MyRNNCell(keras.layers.Layer):
       return output, next_state
 
 class MyGRUCell(keras.layers.Layer):
-    def __init__(self, output_size, hidden_units=10, **kwargs):
+    def __init__(self, output_size, hidden_units=150, **kwargs):
       super(MyGRUCell, self).__init__(**kwargs)
       self.hidden_units = hidden_units
       self.output_size = output_size
@@ -144,7 +144,7 @@ class MyGRUCell(keras.layers.Layer):
 
       # Final memory, Combination of current context and previous memories
       # h_t=(1-z_t).hc_t + z_t.h_{t-1}
-      one_matrix = tf.ones(z_t.shape)
+      one_matrix = tf.ones_like(z_t)
       flip_z = one_matrix - z_t # (batch, hidden)
       rh_ht = tf.multiply(flip_z, h_ct)
       up_gate_hidden = tf.multiply(z_t, initial_states) # (batch, hidden)

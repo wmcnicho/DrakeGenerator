@@ -72,10 +72,10 @@ def train_model(file_name=None, debug=False, num_epochs=2, cell_type='gru', batc
     
     # Create the Model
     if cell_type == 'gru':
-      cell = custom_models.MyGRUCell(vocab_size, hidden_size=hidden_size)
+      cell = custom_models.MyGRUCell(vocab_size, hidden_units=hidden_size)
       model = custom_models.MyCellModelWrapper(cell)
     elif cell_type == 'rnn' or cell_type == 'simple':
-      cell = custom_models.MyRNNCell(vocab_size, hidden_size=hidden_size)
+      cell = custom_models.MyRNNCell(vocab_size, hidden_units=hidden_size)
       model = custom_models.MyCellModelWrapper(cell)
     elif cell_type == 'keras' or cell_type == 'keras_gru':
       cell = keras.layers.SimpleRNNCell(150)
@@ -86,7 +86,8 @@ def train_model(file_name=None, debug=False, num_epochs=2, cell_type='gru', batc
     my_loss = tf.losses.CategoricalCrossentropy(from_logits=True)
     model.compile(loss=my_loss, 
                     optimizer=keras.optimizers.Adam(lr=0.001),
-                    metrics=['accuracy'])
+                    metrics=['accuracy'],
+                    run_eagerly=False)
     # Train the model
     # TODO run this in a gradient tape loop and play with batch randomization
     model.fit(x=split_xs, y=split_ys, epochs=num_epochs, verbose=1, batch_size=batch_size)
