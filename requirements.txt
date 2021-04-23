@@ -1,9 +1,8 @@
+###### Requirements with Version Specifiers ######
+tensorflow>=2.4.0
+
 ###### Requirements without Version Specifiers ######
-tensorflow
 pymongo
 dnspython
 sacred
 numpy
-
-###### Requirements with Version Specifiers ######
-#docopt == 0.6.1  
