@@ -1,5 +1,5 @@
 ###### Requirements with Version Specifiers ######
-tensorflow>=2.4.0
+tensorflow>=2.0.0
 
 ###### Requirements without Version Specifiers ######
 pymongo
