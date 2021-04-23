@@ -1,4 +1,5 @@
 from sacred import Experiment
+from sacred.observers import MongoObserver
 
 import tensorflow as tf
 from tensorflow import keras
@@ -8,9 +9,13 @@ import custom_models
 import numpy as np
 import utils
 import sys
+import os
 from distutils import util
 
-ex = Experiment()
+ex = Experiment(save_git_info=False)
+ex.observers.append(MongoObserver(
+    url=os.environ('DRAKEMONGOURL')
+    db_name='myFirstDatabase'))
 
 # Hyperparameters
 seq_length = 40
