@@ -90,7 +90,7 @@ def train_model(file_name=None, debug=False, num_epochs=2, cell_type='gru', batc
                     run_eagerly=False)
     # Train the model
     # TODO run this in a gradient tape loop and play with batch randomization
-    model.fit(x=split_xs, y=split_ys, epochs=num_epochs, verbose=1, batch_size=batch_size)
+    model.fit(x=split_xs, y=split_ys, epochs=num_epochs, verbose=2, batch_size=batch_size)
     
     print(model.summary())
     if file_name is not None:
